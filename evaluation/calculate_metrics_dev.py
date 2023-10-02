@@ -5,17 +5,47 @@ from rouge_score import rouge_scorer
 from baseline_lpp.baseline import run_baseline
 from utils.paths import *
 from jiwer import wer
+from bert_score import BERTScorer
+import socket
+from urllib3.connection import HTTPConnection
 
-def create_metrics_df(ground_truth: list[str], predicted: list[str]) -> pd.DataFrame:
+"""
+BERTScore (https://arxiv.org/abs/1904.09675)
+"""
+class BERTSCORE(object):
     """
-    calculates metrics for a
+    copied from https://github.com/HuthLab/semantic-decoding/blob/main/decoding/utils_eval.py
+    """
+    def __init__(self, idf_sents=None, rescale = True, score = "f"):
+        self.metric = BERTScorer(lang = "en", rescale_with_baseline = rescale, idf = (idf_sents is not None), idf_sents = idf_sents)
+        if score == "precision": self.score_id = 0
+        elif score == "recall": self.score_id = 1
+        else: self.score_id = 2
+
+    def score(self, ref, pred):
+        ref_strings = [" ".join(x) for x in ref]
+        pred_strings = [" ".join(x) for x in pred]
+        return self.metric.score(cands = pred_strings, refs = ref_strings,verbose=True)[self.score_id].numpy()
+
+
+def create_metrics_df(ground_truth: list[str], predicted: list[str], include_bert_score = False) -> pd.DataFrame:
+    """
+    calculates metrics
     :param ground_truth:
     :param predicted:
     :return:
     """
+    # set higher timeout mb to prevent connection timeout when downloading pytorch_model.bin
+    HTTPConnection.default_socket_options = (
+            HTTPConnection.default_socket_options + [
+        (socket.SOL_SOCKET, socket.SO_SNDBUF, 2000000),
+        (socket.SOL_SOCKET, socket.SO_RCVBUF, 2000000)
+    ])
+
     # Initialize ROUGE scorer
     ROUGE_SCORER = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
-
+    if include_bert_score:
+        BERT_SCORER = BERTSCORE()
     # Initialize variables to accumulate scores
     rouge1_scores = []
     rouge2_scores = []
@@ -23,7 +53,7 @@ def create_metrics_df(ground_truth: list[str], predicted: list[str]) -> pd.DataF
     bleu_scores = []
     meteor_scores = []
     wer_scores = []
-    bert_scores = []
+    # bert_scores = []
 
     # Loop through each pair of ground truth and predicted sentences
     for gt, pred in zip(ground_truth, predicted):
@@ -38,9 +68,7 @@ def create_metrics_df(ground_truth: list[str], predicted: list[str]) -> pd.DataF
         rougeL_scores.append(rouge_scores['rougeL'].fmeasure)
 
         # Calculate BLEU score
-        # print(pred_tokens)
         bleu_score = sentence_bleu(gt_tokens, pred_tokens)
-        # bleu_score = corpus_bleu([gt_tokens],pred_tokens)
         bleu_scores.append(bleu_score)
 
         # Calculate METEOR score
@@ -51,7 +79,12 @@ def create_metrics_df(ground_truth: list[str], predicted: list[str]) -> pd.DataF
         wer_score = wer(reference=gt,hypothesis=pred)
         wer_scores.append(wer_score)
 
-        # TODO: add BERTScore
+    # TODO: add BERTScore
+    # add bert score if specified
+    bert_scores = None
+    if include_bert_score:
+        bert_scores = BERT_SCORER.score(ref=ground_truth, pred=predicted)
+        # bert_scores.append(bs)
 
     df_scores = pd.DataFrame(
         {
@@ -62,16 +95,17 @@ def create_metrics_df(ground_truth: list[str], predicted: list[str]) -> pd.DataF
             'rougeL': rougeL_scores,
             'bleu': bleu_scores,
             'meteor': meteor_scores,
-            'wer':wer_scores
+            'wer':wer_scores,
+            'bert_score': bert_scores
 
         }
     )
     return df_scores
 
 
-def save_baseline_metrics():
+def save_baseline_metrics(include_bert_score:bool=False):
     preproc_sentences_base, gen_sentences_base = run_baseline()
-    df_metrics_baseline = create_metrics_df(ground_truth=preproc_sentences_base, predicted=gen_sentences_base)
+    df_metrics_baseline = create_metrics_df(ground_truth=preproc_sentences_base, predicted=gen_sentences_base, include_bert_score=include_bert_score)
     filename = 'baseline_metrics.csv'
     save_path = os.path.join(eval_path, 'metrics')
     file_path = os.path.join(save_path, filename)
@@ -81,18 +115,5 @@ def save_baseline_metrics():
     print(f'saved {file_path}')
 
 if __name__ == "__main__":
-    save_baseline_metrics()
-# # Calculate average scores
-# avg_rouge1 = sum(rouge1_scores) / len(rouge1_scores)
-# avg_rouge2 = sum(rouge2_scores) / len(rouge2_scores)
-# avg_rougeL = sum(rougeL_scores) / len(rougeL_scores)
-# avg_bleu = sum(bleu_scores) / len(bleu_scores)
-# avg_meteor = sum(meteor_scores) / len(meteor_scores)
-#
-# # Add the average scores to the DataFrame
-# metrics_df.loc[0] = [avg_rouge1, avg_rouge2, avg_rougeL, avg_bleu, avg_meteor]
-#
-# # Display the DataFrame
-
-
-print('done')
+    save_baseline_metrics(include_bert_score =False)
+    print('done')

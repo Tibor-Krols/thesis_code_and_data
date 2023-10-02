@@ -1,5 +1,6 @@
 import nibabel as nib
 import matplotlib.pyplot as plt
+from utils.paths  import *
 
 import sys
 import os
@@ -8,7 +9,8 @@ import numpy as np
 # from scipy.stats import pearsonr
 import os
 
-src_path = r"C:\Users\tibor\Documents\thesis\code_and_data"
+# TODO: chang to path variables util
+src_path = r"/"
 data_path = os.path.join(src_path,r'dataset_sample\derivatives')
 subjects_en = ["subj57"] # how they did it in LPP code
 subjects_en = ['sub-EN057']
@@ -32,7 +34,7 @@ for i in section_nrs:
     sections.append(subj_data)
 # mask = nib.load("lpp_%s%d_groupmask_thrs80.nii" %(lang,len(subjects))).get_fdata()
 
-for i in rang(len(sections)):
+for i in range(len(sections)):
     print()
 
 

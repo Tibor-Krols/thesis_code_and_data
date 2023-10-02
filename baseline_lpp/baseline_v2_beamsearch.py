@@ -4,6 +4,7 @@ import random
 import re
 from collections import defaultdict
 from utils.paths import *
+import numpy as np
 
 def preprocess_text(text):
     text = text.lower()  # Convert to lowercase
@@ -32,6 +33,43 @@ def get_word_probabilities(text):
     return word_probabilities
 
 
+def beam_search( seed_text, beam_width, max_length,word_probabilities):
+    # Initialize the list of candidates with the seed text
+    candidates = [(seed_text, 1.0)]
+    prob_dist = list(word_probabilities.values())
+    vocab = list(word_probabilities.keys())
+    for _ in range(max_length):
+        new_candidates = []
+
+        for candidate, score in candidates:
+            # Get the probability distribution over the vocabulary for the next word
+            # prob_dist = model.get_word_probabilities(candidate)
+            # TODO: get prob_dist from language model, map to lpp vocab and multiply prob_dist with posterior prob dist of brainscan
+            # Select the top 'beam_width' words
+            top_words_indices = np.argsort(prob_dist)[-beam_width:]
+
+            # random_word = random.choices(list(word_probabilities.keys()),
+            #                              list(word_probabilities.values()))[0]
+            for word_index in top_words_indices:
+                # next_word = model.vocab[word_index]
+                next_word =  vocab[word_index]
+                new_candidate = candidate + " " + next_word
+                new_score = score * prob_dist[word_index]
+
+                new_candidates.append((new_candidate, new_score))
+
+        # Sort and select the top 'beam_width' candidates
+        new_candidates.sort(key=lambda x: x[1], reverse=True)
+        candidates = new_candidates[:beam_width]
+
+    # Select the candidate with the highest score as the generated sentence
+    best_candidate, _ = max(candidates, key=lambda x: x[1])
+    return best_candidate
+
+
+
+
+
 def generate_text(word_probabilities, n):
     """
      Generate the sequence of n words based on the probability distribution
@@ -54,6 +92,21 @@ def generate_probability_sequences(sentences,word_probabilities):
         gen_sent = generate_text(word_probabilities=word_probabilities,n=nwords)
         gen_sentences.append(gen_sent)
     return gen_sentences
+
+
+def run_baseline_beam_search():
+    # Example usage:
+    seed_text = "Once upon a time"
+    beam_width = 3
+    max_length = 20
+    # Read and preprocess the text file
+    text = load_lpp_book()
+    preprocessed_text = preprocess_text(text=text)
+
+    # calculate word probabilities
+    word_probabilities = get_word_probabilities(preprocessed_text)
+    generated_sentence = beam_search( seed_text, beam_width, max_length, word_probabilities)
+    print(generated_sentence)
 
 
 def run_baseline():
@@ -97,6 +150,7 @@ def save_baseline_preds(sentences,gen_sentences):
 
 
 if __name__ == "__main__":
+    run_baseline_beam_search()
     preproc_sentences,gen_sentences = run_baseline()
     save_baseline_preds(sentences=preproc_sentences,gen_sentences=gen_sentences)
     print('done')

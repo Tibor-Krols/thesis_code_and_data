@@ -6,7 +6,8 @@ import json
 
 
 def load_textgrid(section):
-    filename = f"lppEN_section{section}.TextGrid.txt"
+    # filename = f"lppEN_section{section}.TextGrid.txt"
+    filename = f"lppEN_section{section}.TextGrid"
     #TODO: change to TextGrid and not .txt?
     file_path = os.path.join(annot_path, 'EN', filename)
     with open(file_path, 'r') as f:
@@ -49,7 +50,7 @@ def save_audio_timestamps(wordlist,section,language = 'EN'):
         json.dump(wordlist, fout)
 
 
-def load_audio_timestamps(section,language = 'EN'):
+def load_audio_timestamps(section,language = 'EN',as_timedelta = True):
     """
     loads the json file and converts time in seconds to timedelta object
     :param section:
@@ -62,23 +63,69 @@ def load_audio_timestamps(section,language = 'EN'):
     # Open and read the JSON file
     with open(file_path, 'r') as json_file:
         wordlist = json.load(json_file)
-    wordlist = [{
-        'word':w['word'],
-        'start': timedelta(seconds=w['start']),
-        'end':timedelta(seconds=w['end'])
-    } for w in wordlist]
+    if as_timedelta:
+        wordlist = [{
+            'word':w['word'],
+            'start': timedelta(seconds=w['start']),
+            'end':timedelta(seconds=w['end'])
+        } for w in wordlist]
+    else:
+        wordlist = [{
+            'word': w['word'],
+            'start': w['start'],
+            'end': w['end']
+        } for w in wordlist]
     return wordlist
 
 
 def create_all_word_timestamp_files():
     # load textgrid file
     #TODO: change to 9 sections (range(1,10)
-    for section in range(1,3):
+    for section in range(1,10):
         data = load_textgrid(section=section)
         wordlist = extract_word_timestamps(data)
         save_audio_timestamps(wordlist=wordlist,section=section)
 
 
+def extract_sentences(wordlist):
+    """
+    splits sentences based on # split
+    :param wordlist: a list of words where each word is a dict with word, start and end as keys
+    {'word': 'once', 'start': datetime.timedelta(microseconds=113200), 'end': datetime.timedelta(microseconds=728200)}
+    :return: a list of sentences. where a sentence is a list of words dicts
+    """
+    sentences = []
+    sentence = []
+
+    for entry in wordlist:
+        word = entry['word']
+
+        if word == '#':
+            if sentence:
+                sentences.append(sentence)
+            sentence = []
+        else:
+            sentence.append(entry)
+
+    # Add the last sentence if it exists
+    if sentence:
+        sentences.append(sentence)
+
+    return sentences
+
+
+# TODO: make load_section_timestamps and map for specific section and map_words_to_volumes to work for one section
+def load_section_timestamps(section:int, as_timedelta = True):
+    section_dict = {
+        section: load_audio_timestamps(section=section,as_timedelta=as_timedelta)
+    }
+    return section_dict
+def load_all_sections_timestamps(as_timedelta = True):
+    section_dict = {}
+    for section in range(1, 10):
+        wordslist = load_audio_timestamps(section=section,as_timedelta=as_timedelta)
+        section_dict[section] = wordslist
+    return section_dict
 
 if __name__ == '__main__':
     print('creating all files')
