@@ -14,6 +14,7 @@ class LPPDataset(Dataset):
         Args:
             root_dir (str): Root directory of the dataset.
         """
+        super().__init__()
         self.root_dir = root_dir
         self.participant_folders = sorted(os.listdir(root_dir))
         self.participant_folders = [f for f in self.participant_folders if f.__contains__(lang)]

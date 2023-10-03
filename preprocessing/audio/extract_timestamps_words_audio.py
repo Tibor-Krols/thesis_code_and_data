@@ -5,13 +5,17 @@ from datetime import timedelta
 import json
 
 
+
 def load_textgrid(section):
-    # filename = f"lppEN_section{section}.TextGrid.txt"
     filename = f"lppEN_section{section}.TextGrid"
-    #TODO: change to TextGrid and not .txt?
     file_path = os.path.join(annot_path, 'EN', filename)
-    with open(file_path, 'r') as f:
-        data = f.read()
+    if section in [3,4,5,6]:
+        # little hack because the encoding of these sections is different for some reason
+        with open(file_path, 'r',encoding='utf-16') as f:
+            data = f.read()
+    else:
+        with open(file_path, 'r') as f:
+            data = f.read()
     return data
 def extract_word_timestamps(data:str)-> list[dict]:
     """ 
@@ -82,6 +86,7 @@ def create_all_word_timestamp_files():
     # load textgrid file
     #TODO: change to 9 sections (range(1,10)
     for section in range(1,10):
+    # for section in range(3,7):
         data = load_textgrid(section=section)
         wordlist = extract_word_timestamps(data)
         save_audio_timestamps(wordlist=wordlist,section=section)
