@@ -11,6 +11,7 @@ class BaseSectionParticipant:
         if include_volume_words_dict:
             self.volume_words_dict = self.get_words_volume_idx_dict()
         self.section_vocab = self.get_section_vocab()
+        self.nr_fmri_frames =self.fmri.shape[3]
     def __getitem__(self, index:int):
         """
         get a certain volume of the fmri timeseries based on the index

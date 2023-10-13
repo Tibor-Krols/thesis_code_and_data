@@ -1,13 +1,19 @@
+import pandas as pd
+
 from baseline_lpp.baseline import generate_text
 from dataset_loader.dataset import LPPDataset
 from dataset_loader.section_participant_base import BaseSectionParticipant
+from evaluation.calculate_metrics import save_bayesian_volume_metrics_participant
 from models.bayesian.calculate_fmri_averages import load_averages
 from models.bayesian.correlate_volumes import calulate_word_correlations, normalize_correlation_vector_vocab, \
     map_corr_to_vocab, softmax_dict
 from baseline_lpp import baseline
 from preprocessing.audio.extract_timestamps_words_audio import load_full_book
 import torch
-
+from utils import file_saving
+from tqdm import tqdm
+from utils.paths import *
+from training.train_test_split import train_test_split_lpp
 # from models.bayesian.correlate_volumes import
 
 def get_likelihood_volume_ps_volume_dict(avg_fmri_word_dict,ps:BaseSectionParticipant,vol_idx:int):
@@ -80,25 +86,74 @@ def predict_words_ps_volume(avg_fmri_word_dict,ps,vol_idx,prior_dict)-> tuple[li
         posterior_dict=posterior_dict,
         nwords=nwords_volume
     )
-    return ground_truth_vol,pred_words_vol.split()
+    return ' '.join(ground_truth_vol),pred_words_vol
+
+
+def run_predictions_participant_section(ps,prior_dict,avg_fmri_word_dict):
+
+    pred_text = []
+    ground_truths = []
+    volume_indices = []
+    # loop over all volumes in participant section
+    # for vol_idx in tqdm(range(ps.nr_fmri_frames)):
+    for vol_idx in tqdm(range(1)):
+        # make prediction
+        gt_vol, pred_vol = predict_words_ps_volume(
+            avg_fmri_word_dict,
+            ps,
+            vol_idx,
+            prior_dict
+        )
+        pred_text.append(pred_vol)
+        ground_truths.append(gt_vol)
+        volume_indices.append(vol_idx)
+
+    df = pd.DataFrame(
+        {
+            'participant':ps.participant,
+            'section': ps.section,
+            'volume_idx': volume_indices,
+            'ground_truth':ground_truths,
+            'pred_text':pred_text
+         }
+    )
+    return df
+
 def main():
     dataset = LPPDataset()
-    ps = BaseSectionParticipant(dataset[0], include_volume_words_dict=True)
+    train_indices,test_indices = train_test_split_lpp(dataset)
+    ps_idx = test_indices[0]
+    ps = BaseSectionParticipant(dataset[ps_idx], include_volume_words_dict=True)
     avg_fmri_word_dict = load_averages()
 
 
     vol_idx = 1
-
     #prior
     prior_dict = get_prior_dict()
 
-    gt_vol, pred_vol = predict_words_ps_volume(
-        avg_fmri_word_dict,
-        ps,
-        vol_idx,
-        prior_dict
+    #run predictions bayesian fmri
+    df_pred = run_predictions_participant_section(ps, prior_dict, avg_fmri_word_dict)
+    filename = f"bayes_vol_pred_{ps.participant}"
+    pred_file_path = pred_path /'bayesian'
+    # save predictions
+    file_saving.save_df(
+        df_pred,
+        filename=filename,
+        save_path=pred_file_path
     )
-    print(gt_vol,pred_vol)
+
+    # calculate_metrics
+    save_bayesian_volume_metrics_participant(
+        filename=filename,
+        filepath=pred_file_path,
+    )
+    # gt_vol, pred_vol = predict_words_ps_volume(
+    #     avg_fmri_word_dict,
+    #     ps,
+    #     vol_idx,
+    #     prior_dict
+    # )
+    # print(gt_vol,pred_vol)
     print('done')
 
 

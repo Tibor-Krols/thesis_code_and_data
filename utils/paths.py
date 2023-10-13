@@ -13,6 +13,7 @@ annot_path =  data_path /'annotation'
 fmri_path = data_path /'derivatives'
 eval_path = path / 'evaluation'
 deriv_path = data_path /'derivatives'
+pred_path = path / 'predictions'
 
 # path = r'C:\Users\tibor\Documents\thesis\code_and_data'
 # # when using harddrive dataset
