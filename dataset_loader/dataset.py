@@ -1,13 +1,15 @@
 import os
 import torch
 from torch.utils.data import Dataset
+
+from preprocessing.audio.extract_timestamps_words_audio import load_full_book
 from utils.paths import *
 import nibabel as nib
 from utils.load_participant_section import load_all_sections_timestamps,map_words_to_volumes,load_section_timestamps
 
 
 class LPPDataset(Dataset):
-    def __init__(self, root_dir = deriv_path, lang = 'EN',use_zip = True):
+    def __init__(self, root_dir = deriv_path, lang = 'EN',use_zip = True,include_book = False):
         """
         Initialize the hierarchical dataset for LPP
 
@@ -37,6 +39,10 @@ class LPPDataset(Dataset):
         self.section_nrs = list(set([s[3] for s in self.samples]))
         self.nr_of_sections = len(self.section_nrs)
         self.nr_samples = len(self.samples)
+        if include_book:
+            self.book_text = load_full_book()
+
+
     def __len__(self):
         """
         Return the number of samples in the dataset.

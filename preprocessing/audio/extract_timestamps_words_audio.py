@@ -4,8 +4,6 @@ import re
 from datetime import timedelta
 import json
 
-
-
 def load_textgrid(section):
     filename = f"lppEN_section{section}.TextGrid"
     file_path = os.path.join(annot_path, 'EN', filename)
@@ -132,6 +130,24 @@ def load_all_sections_timestamps(as_timedelta = True):
         section_dict[section] = wordslist
     return section_dict
 
+def load_full_book()-> str:
+    book_text = []
+    for section in range(1, 10):
+        section_text = load_audio_timestamps(section)
+        section_text = [w['word'] for w in section_text if w['word'] != '#']
+        book_text += section_text
+    book_text = ' '.join(section for section in book_text)
+    return book_text
+
 if __name__ == '__main__':
     print('creating all files')
     create_all_word_timestamp_files()
+
+
+
+# word_average_dict = {
+#     'w1':v1,
+#     'w2':v2,
+#     ...
+#     'wn':vn
+# }

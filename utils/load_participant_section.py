@@ -61,7 +61,7 @@ def load_participant_section_fmri(participant,section:int,participants_path_dict
     return nib.load(file_path).get_fdata()
 
 
-def map_words_to_volumes(sections_timestamps_dict):
+def map_words_to_volumes(sections_timestamps_dict, start_bound:float = .1):
     """
     takes as input the sections timestamp dict on word level and adds the indexes of the fmri volumes to the word dicts
     :param sections_timestamps_dict:
@@ -69,9 +69,8 @@ def map_words_to_volumes(sections_timestamps_dict):
     """
     new_sections_timestamps_dict = {}
     for section,section_words in sections_timestamps_dict.items():
-        # TODO: add some sort of slack to start and end timestamp word boundries
         # select volumes of start and end timestamp of word
-        volume_list = [(int(w['start']//2),int(w['end']//2)) for w in section_words]
+        volume_list = [(int((w['start']+start_bound)//2),int(w['end']//2)) for w in section_words]
         # convert start and end time to range of volumes
         volume_list = [list(range(start,end +1)) for start,end in volume_list]
 

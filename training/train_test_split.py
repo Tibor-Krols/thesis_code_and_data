@@ -92,8 +92,19 @@ def train_test_validation_split(dataset,Ntrain_participants=46,Ntrain_sections=7
 
     return train_indices,test_indices,validation_indices
 
-
-def train_test_split_lpp(dataset,Ntrain_participants=47,Ntrain_sections=8,Ntest_participants =1,Ntest_sections = 1)->tuple[list[int],list[int]]:
+def get_train_test_sections(section_nrs = [i for i in range(1,10)], Ntrain_sections=8,Ntest_sections =1):
+    random.seed(42)
+    nr_of_sections = len(section_nrs)
+    type = ['train','test']
+    nr_sections_list = [Ntrain_sections,Ntest_sections]
+    dict_percentages_sections = {}
+    for fold,n_sect in zip(type,nr_sections_list):
+        perc_sections = n_sect/nr_of_sections
+        dict_percentages_sections[fold] = perc_sections
+    train_sections, test_sections = train_test_split(section_nrs, test_size=dict_percentages_sections['test'],
+                                                            random_state=42)
+    return train_sections,test_sections
+def train_test_split_lpp(dataset,Ntrain_participants=44,Ntrain_sections=8,Ntest_participants =4,Ntest_sections = 1)->tuple[list[int],list[int]]:
     """
     split based on specified nr of participants and sections
     default train,test validation:

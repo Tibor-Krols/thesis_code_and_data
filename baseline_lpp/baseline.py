@@ -18,9 +18,12 @@ def load_lpp_book():
         text = file.read()
     return text
 
-def get_word_probabilities(text):
+def get_word_probabilities(text,preprocess = True):
     # Step 1: Preprocess text
-    preprocessed_text = preprocess_text(text)
+    if preprocess:
+        preprocessed_text = preprocess_text(text)
+    else:
+        preprocessed_text = text
     # Step 2: Tokenize the text into words
     words = preprocessed_text.split()
     # Step 3: Build a probability distribution based on word frequencies
