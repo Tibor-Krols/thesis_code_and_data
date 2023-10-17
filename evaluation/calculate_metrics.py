@@ -119,6 +119,7 @@ def save_bayesian_volume_metrics_participant(filename,filepath,include_bert_scor
     if not filename.endswith('.csv'):
         filename +='.csv'
     df_pred = pd.read_csv(filepath/filename)
+    # df_pred.drop(df_pred.tail(4).index, inplace=True) #drop last 4 non text volumes TODO: remove/make more flexible
     save_filename = 'metrics_' + filename
     df_metrics_bayes = create_metrics_df(
         ground_truth=df_pred['ground_truth'],

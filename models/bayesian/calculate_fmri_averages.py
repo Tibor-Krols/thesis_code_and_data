@@ -7,7 +7,7 @@ from torch import save,load
 from tqdm import tqdm
 
 
-def calculate_averages(dataset,indices_participant_sections):
+def calculate_averages(dataset,indices_participant_sections,participant = ""):
     sum_fmri_word_dict = {}
     count_fmri_word_dict = {}
 
@@ -31,10 +31,17 @@ def calculate_averages(dataset,indices_participant_sections):
         avg_fmri_word_dict[word] = sum_fmri_word_dict[word]/count_words
 
     # save dict
-    save_path = data_path / 'word_averages'
-    os.makedirs(save_path,exist_ok=True)
-    file_path = save_path / 'word_averages_fmri_dict.pt'
-    save(avg_fmri_word_dict, file_path)
+    if participant == "":
+        save_path = data_path / 'word_averages'
+        os.makedirs(save_path,exist_ok=True)
+        file_path = save_path / f'word_averages_fmri_dict.pt'
+        save(avg_fmri_word_dict, file_path)
+    else:
+        save_path = data_path / 'word_averages_participants'
+        os.makedirs(save_path,exist_ok=True)
+        file_path = save_path / f'{participant}_word_averages_fmri_dict.pt'
+        save(avg_fmri_word_dict, file_path)
+
 
 def load_averages(filepath = data_path / 'word_averages'/'word_averages_fmri_dict.pt' ):
     return load(filepath)

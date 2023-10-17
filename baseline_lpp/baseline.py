@@ -35,7 +35,7 @@ def get_word_probabilities(text,preprocess = True):
     return word_probabilities
 
 
-def generate_text(word_probabilities, n):
+def generate_text(word_probabilities, n,fixed_random_state=False):
     """
      Generate the sequence of n words based on the probability distribution
     :param word_probabilities:
@@ -43,7 +43,8 @@ def generate_text(word_probabilities, n):
     :return:
     """
     sequence = []
-    # random.seed(42) #for reproducibility
+    if fixed_random_state:
+        random.seed(42) #for reproducibility. dont use for baseline, as it only predicts the same words
     for _ in range(n):
         random_word = random.choices(list(word_probabilities.keys()),
                                      list(word_probabilities.values()))[0]

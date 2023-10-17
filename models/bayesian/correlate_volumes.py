@@ -21,6 +21,14 @@ def calulate_word_correlations(avg_fmri_word_dict, volume):
     return cors
 
 
+def calculate_mse(vol1,vol2):
+    mse = torch.sqrt(torch.mean((vol1.reshape(-1)-vol2.reshape(-1)) ** 2))
+    return mse
+
+def calculate_word_mse(avg_fmri_word_dict, volume):
+    return torch.stack([calculate_mse(volume,vol_w) for vol_w in avg_fmri_word_dict.values() ])
+
+
 def stack_mean_word_vocab(avg_fmri_word_dict):
     stack = torch.stack([vol.reshape(-1) for vol in avg_fmri_word_dict.values()])
     # for word,mean_fmri_word in avg_fmri_word_dict.items():

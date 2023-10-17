@@ -80,6 +80,9 @@ class LPPDataset(Dataset):
         participants =  [s[1] for s in self.samples]
         return list(set(participants))
 
+    def get_participant_samples_indices(self,participant):
+        return [i for i,s in enumerate(self.samples) if s[1] == participant]
+
     def get_participant_section_data(self,participant:str,section:int):
         participant_files = sorted([f[2] for f in self.samples if f[1].__contains__(participant) ])
         section_file =  participant_files[section-1]
