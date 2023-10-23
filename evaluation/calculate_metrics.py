@@ -127,7 +127,24 @@ def save_bayesian_volume_metrics_participant(filename,filepath,include_bert_scor
         include_bert_score=include_bert_score)
     savepath = eval_path/'metrics'/'bayesian'
     file_saving.save_df(df_metrics_bayes,save_filename,save_path=savepath)
-
+def save_baseline_trainset_metrics(filename,filepath,include_bert_score=False):
+    if not filename.endswith('.csv'):
+        filename +='.csv'
+    df_pred = pd.read_csv(filepath/filename)
+    # df_pred.drop(df_pred.tail(4).index, inplace=True) #drop last 4 non text volumes TODO: remove/make more flexible
+    save_filename = 'metrics_' + filename
+    df_metrics = create_metrics_df(
+        ground_truth=df_pred['ground_truth'],
+        predicted=df_pred['pred_text'],
+        include_bert_score=include_bert_score)
+    savepath = eval_path/'metrics'/'baseline'
+    file_saving.save_df(df_metrics,save_filename,save_path=savepath)
 if __name__ == "__main__":
-    save_baseline_metrics(include_bert_score =False)
+    # save_baseline_metrics(include_bert_score =False)
+
+    save_baseline_trainset_metrics(
+        filename='baseline_trainset_predictions',
+        filepath=pred_path/'baseline'
+    )
+
     print('done')

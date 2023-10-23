@@ -1,8 +1,9 @@
 import os
 import torch
 from torch.utils.data import Dataset
+from transformers import BartTokenizer
 
-from preprocessing.audio.extract_timestamps_words_audio import load_full_book, load_full_book_sections
+from preprocessing.audio.extract_timestamps_words_audio import load_full_book
 from utils.paths import *
 import nibabel as nib
 from utils.load_participant_section import load_all_sections_timestamps,map_words_to_volumes,load_section_timestamps
@@ -22,6 +23,8 @@ class LPPDataset(Dataset):
         self.participant_folders = [f for f in self.participant_folders if f.__contains__(lang)]
         # Create a list of (participant_folder, section_folder) pairs
         self.samples = []
+        self.tokenizer_name='bart'
+        self.tokenizer = self.get_tokenizer()
         for participant_folder in self.participant_folders:
             participant_path = os.path.join(root_dir, participant_folder,'func')
 
@@ -41,7 +44,6 @@ class LPPDataset(Dataset):
         self.nr_samples = len(self.samples)
         if include_book:
             self.book_text = load_full_book()
-            self.sections_text = load_full_book_sections()
 
 
     def __len__(self):
@@ -100,7 +102,7 @@ class LPPDataset(Dataset):
         else:
             raise NotImplementedError
 def main():
-    dataset = LPPDataset(deriv_path)
+    dataset = LPPDataset()
     dataset.get_participant_section_data('sub-EN083', 1)
 
     participants = dataset.get_participants()

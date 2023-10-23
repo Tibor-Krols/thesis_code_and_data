@@ -138,6 +138,16 @@ def load_full_book()-> str:
         book_text += section_text
     book_text = ' '.join(section for section in book_text)
     return book_text
+def load_full_book_sections():
+    sections_text = {}
+    for section in range(1, 10):
+        section_text = load_audio_timestamps(section)
+        section_text = [w['word'] for w in section_text if w['word'] != '#']
+        sections_text[section]= " ".join(section_text)
+        # sections_text += [" ".join(section_text)]
+    # sections_text = {i+1:text for i,text in enumerate(sections_text)}
+    # book_text = ' '.join(section for section in book_text)
+    return sections_text
 
 if __name__ == '__main__':
     print('creating all files')

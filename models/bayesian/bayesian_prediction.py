@@ -26,8 +26,8 @@ def get_likelihood_volume_ps_volume_dict(avg_fmri_word_dict,ps:BaseSectionPartic
     # norm_vec = normalize_correlation_vector_vocab(cor_vec_vol)
     if similarity_type == 'mse':
         similarity_vec = calculate_word_mse(avg_fmri_word_dict,vol)
-        similarity_vec = normalize_correlation_vector_vocab(similarity_vec)
-        similarity_vec = 1 - similarity_vec
+        # similarity_vec = normalize_correlation_vector_vocab(similarity_vec)
+        similarity_vec = - similarity_vec
 
     # map vector to vocab
     likelihood_dict_ps_volume = map_corr_to_vocab(
