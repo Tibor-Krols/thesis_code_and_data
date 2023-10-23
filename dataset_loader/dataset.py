@@ -43,7 +43,6 @@ class LPPDataset(Dataset):
             self.book_text = load_full_book()
             self.sections_text = load_full_book_sections()
 
-
     def __len__(self):
         """
         Return the number of samples in the dataset.
@@ -86,7 +85,11 @@ class LPPDataset(Dataset):
         return (73, 90, 74)
     def get_participant_samples_indices(self,participant):
         return [i for i,s in enumerate(self.samples) if s[1] == participant]
-
+    def get_participant_section_index(self,participant:str,section:int):
+        participant_files = sorted([f[2] for f in self.samples if f[1].__contains__(participant) ])
+        section_file =  participant_files[section-1]
+        index = [i for i in range(len(self.samples)) if self.samples[i][1] == participant and self.samples[i][2]==section_file]
+        return index[0]
     def get_participant_section_data(self,participant:str,section:int):
         participant_files = sorted([f[2] for f in self.samples if f[1].__contains__(participant) ])
         section_file =  participant_files[section-1]

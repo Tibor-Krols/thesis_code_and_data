@@ -3,6 +3,8 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 import random
 import re
 from collections import defaultdict
+from dataset_loader.dataset import LPPDataset
+from dataset_loader.section_participant_base import BaseSectionParticipant
 
 from preprocessing.audio.extract_timestamps_words_audio import load_full_book_sections
 from training.train_test_split import get_train_test_sections
@@ -54,13 +56,43 @@ def generate_text(word_probabilities, n,fixed_random_state=False):
         sequence.append(random_word)
     return ' '.join(sequence)
 
-def generate_probability_sequences(sentences,word_probabilities):
-    gen_sentences = []
-    for s in sentences:
-        nwords = len(s.split())
+def get_volumes_dict():
+    dataset = LPPDataset()
+    participant = dataset.participants[0] #just take the first participant
+    sections = range(1, 10)
+    participants_list = []
+    sections_list = []
+    volumes_list = []
+    nwords_list = []
+    ground_truth_list = []
+    for section in sections:
+        ps_idx = dataset.get_participant_section_index(participant,section)
+        ps = BaseSectionParticipant(dataset[ps_idx], include_volume_words_dict=True)
+        for vol_idx in range(ps.nr_fmri_frames):
+            ground_truth_vol = ps.get_words_volume_idx(vol_idx)
+            nwords_volume = len(ground_truth_vol)
+            # add values to list
+            participants_list.append(participant)
+            sections_list.append(section)
+            volumes_list.append(vol_idx)
+            nwords_list.append(nwords_volume)
+            ground_truth_list.append(' '.join(ground_truth_vol))
+
+    nword_dict = {
+        'participant':participants_list,
+        'section':sections_list,
+        'volume': volumes_list,
+        'nwords': nwords_list,
+        'ground_truth':ground_truth_list
+    }
+    return nword_dict
+
+def generate_probability_sequences(volumes_dict,word_probabilities):
+    gen_volumes_text = []
+    for nwords in volumes_dict['nwords']:
         gen_sent = generate_text(word_probabilities=word_probabilities,n=nwords)
-        gen_sentences.append(gen_sent)
-    return gen_sentences
+        gen_volumes_text.append(gen_sent)
+    return gen_volumes_text
 
 def load_train_set_text():
     """
@@ -77,7 +109,7 @@ def load_train_set_text():
     text = " ".join([t for t in train_sections_text.values()])
     return text
 
-def run_baseline():
+def run_baseline_trainset_volumes():
     """
     runs baseline
     :return: list of ground truth sentences, list of predicted sentences based on probability
@@ -91,26 +123,28 @@ def run_baseline():
     word_probabilities = get_word_probabilities(preprocessed_text)
 
     # extract sentences and preprocess
-    sentences = sent_tokenize(text)
-    preproc_sentences = [preprocess_text(s) for s in sentences]
+    # sentences = sent_tokenize(text)
+    # preproc_sentences = [preprocess_text(s) for s in sentences]
 
     # generate probability sentences with the same lenght
     # preproc_sentences = preproc_sentences[:5] # TODO remove this, for now for saving compute
+    volumes_dict = get_volumes_dict()
+
     gen_sentences = generate_probability_sequences(
-        sentences=preproc_sentences,
+        volumes_dict=volumes_dict,
         word_probabilities=word_probabilities
     )
-    return preproc_sentences,gen_sentences
+    return volumes_dict['ground_truth'],gen_sentences
 
 def save_baseline_preds(sentences,gen_sentences):
     df = pd.DataFrame(
         {
-            'sentences':sentences,
-            'predictions':gen_sentences
+            'ground_truth':sentences,
+            'pred_text':gen_sentences
         }
     )
 
-    filename = 'baseline_trainset_predictions.csv'
+    filename = 'baseline_trainset_per_volume_predictions.csv'
     save_path = pred_path /'baseline'
     file_path = os.path.join(save_path, filename)
     if not os.path.exists(save_path):
@@ -119,7 +153,7 @@ def save_baseline_preds(sentences,gen_sentences):
 
 
 if __name__ == "__main__":
-    preproc_sentences,gen_sentences = run_baseline()
-    save_baseline_preds(sentences=preproc_sentences,gen_sentences=gen_sentences)
+    gt_volumes,gen_volumes = run_baseline_trainset_volumes()
+    save_baseline_preds(sentences=gt_volumes,gen_sentences=gen_volumes)
     print('done')
 
