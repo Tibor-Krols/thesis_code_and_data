@@ -54,8 +54,9 @@ def map_corr_to_vocab(corr_vec, words_map, vocab = Vocab(),missing_vocab_value =
     dict_vol = dict([(word,val) for word,val in zip(words_map,corr_vec)])
 
     # assing default correlation value to out of vocabulary words
-    dict_oov = dict((word,missing_vocab_value) for word in vocab.dataset_vocab if word not in words_map)
-    return dict_vol | dict_oov #returns combination of both dict
+    # dict_oov = dict((word,missing_vocab_value) for word in vocab.dataset_vocab if word not in words_map)
+    # return dict_vol | dict_oov #returns combination of both dict
+    return dict_vol
 
 
 def main():
@@ -63,9 +64,9 @@ def main():
     ps = BaseSectionParticipant(dataset[0], include_volume_words_dict=True)
     avg_fmri_word_dict = load_averages()
 
-    vol1 = ps[1]
-    vol2 = avg_fmri_word_dict['magnificent']
-    corr = calulate_correlation(vol1, vol2)
+    # vol1 = ps[1]
+    # vol2 = avg_fmri_word_dict['magnificent']
+    # corr = calulate_correlation(vol1, vol2)
     cor_vec_vol = calulate_word_correlations(avg_fmri_word_dict, vol1)
     norm_vec = normalize_correlation_vector_vocab(cor_vec_vol)
     softmax_vec = _softmax(cor_vec_vol)

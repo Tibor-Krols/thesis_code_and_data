@@ -47,7 +47,6 @@ def load_averages(filepath = data_path / 'word_averages'/'word_averages_fmri_dic
     return load(filepath)
 
 def main():
-
     dataset = LPPDataset()
     train_indices,test_indices = train_test_split_lpp(dataset)
     calculate_averages(dataset,indices_participant_sections=train_indices)

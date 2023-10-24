@@ -1,6 +1,6 @@
 import pandas as pd
-
-from baseline_lpp.baseline import generate_text
+from baseline_lpp import baseline
+from baseline_lpp.baseline_trainset_per_volume import load_train_set_text,preprocess_text,get_word_probabilities,generate_text
 from dataset_loader.dataset import LPPDataset
 from dataset_loader.section_participant_base import BaseSectionParticipant
 from evaluation.calculate_metrics import save_bayesian_volume_metrics_participant
@@ -10,10 +10,12 @@ from models.bayesian.correlate_volumes import calulate_word_correlations, normal
 from baseline_lpp import baseline
 from preprocessing.audio.extract_timestamps_words_audio import load_full_book
 import torch
+import torch.nn.functional as F
 from utils import file_saving
 from tqdm import tqdm
 from utils.paths import *
 from training.train_test_split import train_test_split_lpp
+
 # from models.bayesian.correlate_volumes import
 
 def get_likelihood_volume_ps_volume_dict(avg_fmri_word_dict,ps:BaseSectionParticipant,vol_idx:int,similarity_type = "correlation"):
@@ -51,6 +53,17 @@ def get_prior_dict()-> dict[str:int]:
     # normalize or softmax?
     return prior_dict
 
+def get_prior_dict_trainset():
+    """"
+    gets prior based on the text from the train set
+    """
+    # Read and preprocess the text file
+    text = load_train_set_text()
+    # text = load_lpp_book()
+    preprocessed_text = preprocess_text(text=text)
+    # calculate word probabilities
+    prior_dict = get_word_probabilities(preprocessed_text)
+    return prior_dict
 
 
 def calculate_posterior_ps_volume(prior_dict, likelihood_dict):
@@ -59,7 +72,11 @@ def calculate_posterior_ps_volume(prior_dict, likelihood_dict):
     prior_values = torch.tensor(list(prior_dict.values()))
     likelihood_values = torch.tensor(list(likelihood_dict.values()))
     posterior_values = prior_values * likelihood_values
+    # Take softmax to convert into probability distribution
+    posterior_values = F.softmax(posterior_values, dim=0)
     posterior_dict = {w:v.item() for w,v in zip(vocab,posterior_values)}
+    # Take softmax to convert into probability distribution
+    # posterior_dict = softmax_dict(posterior_dict)
     return posterior_dict
 
 def predict_words_posterior(posterior_dict, nwords:int)->str:
@@ -105,8 +122,8 @@ def run_predictions_participant_section(ps,prior_dict,avg_fmri_word_dict,similar
     ground_truths = []
     volume_indices = []
     # loop over all volumes in participant section
-    # for vol_idx in tqdm(range(ps.nr_fmri_frames)):
-    for vol_idx in tqdm(range(20)):
+    for vol_idx in tqdm(range(ps.nr_fmri_frames)):
+    # for vol_idx in tqdm(range(20)): #for testing a smaller subset
         # make prediction
         gt_vol, pred_vol = predict_words_ps_volume(
             avg_fmri_word_dict,
@@ -133,8 +150,8 @@ def run_predictions_participant_section(ps,prior_dict,avg_fmri_word_dict,similar
 def main():
     dataset = LPPDataset()
     train_indices,test_indices = train_test_split_lpp(dataset)
-    ps_idx = test_indices[0]
-    ps_idx = train_indices[0]
+    ps_idx = test_indices[10]
+    # ps_idx = train_indices[0]
     ps = BaseSectionParticipant(dataset[ps_idx], include_volume_words_dict=True)
     avg_fmri_word_dict = load_averages()
 
@@ -142,11 +159,11 @@ def main():
     vol_idx = 1
     similarity_type = 'mse'
     #prior
-    prior_dict = get_prior_dict()
+    prior_dict = get_prior_dict_trainset()
 
     #run predictions bayesian fmri
     df_pred = run_predictions_participant_section(ps, prior_dict, avg_fmri_word_dict,similarity_type)
-    filename = f"bayes_vol_pred_{ps.participant}_{similarity_type}"
+    filename = f"bayes_vol_pred_{ps.participant}_section{ps.section}_{similarity_type}"
     pred_file_path = pred_path /'bayesian'
     # save predictions
     file_saving.save_df(
@@ -156,7 +173,7 @@ def main():
     )
 
     # calculate_metrics
-    save_bayesian_volume_metrics_participant(
+    df_metrics = save_bayesian_volume_metrics_participant(
         filename=filename,
         filepath=pred_file_path,
     )

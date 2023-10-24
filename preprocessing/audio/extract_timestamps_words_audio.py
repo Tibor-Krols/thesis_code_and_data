@@ -1,3 +1,4 @@
+from baseline_lpp.baseline import preprocess_text
 from utils.paths  import *
 import os
 import re
@@ -87,6 +88,15 @@ def create_all_word_timestamp_files():
     # for section in range(3,7):
         data = load_textgrid(section=section)
         wordlist = extract_word_timestamps(data)
+        # preprocess wordslist
+        wordlist = [
+            {
+                'start':entry['start'],
+                'end': entry['end'],
+                'word': preprocess_text(entry['word'])
+             }
+            for entry in wordlist if preprocess_text(entry['word']) != ''
+        ]
         save_audio_timestamps(wordlist=wordlist,section=section)
 
 
