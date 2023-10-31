@@ -55,6 +55,16 @@ def generate_text(word_probabilities, n,fixed_random_state=False):
                                      list(word_probabilities.values()))[0]
         sequence.append(random_word)
     return ' '.join(sequence)
+def generate_text_most_probable(word_probabilities, n):
+    """
+     Generate the sequence of n words based on the probability distribution
+    :param word_probabilities:
+    :param n:
+    :return:
+    """
+    # Get the n most probable words
+    most_probable_words = sorted(word_probabilities, key=lambda word: word_probabilities[word], reverse=True)[:n]
+    return ' '.join(most_probable_words)
 
 def get_volumes_dict():
     dataset = LPPDataset()

@@ -126,7 +126,10 @@ def save_bayesian_volume_metrics_participant(filename,filepath,include_bert_scor
         ground_truth=df_pred['ground_truth'],
         predicted=df_pred['pred_text'],
         include_bert_score=include_bert_score)
-    savepath = eval_path/'metrics'/'bayesian'
+    if str(filepath).endswith('per_participant'):
+        savepath = eval_path / 'metrics' / 'bayesian'/'per_participant'
+    else:
+        savepath = eval_path/'metrics'/'bayesian'
     file_saving.save_df(df_metrics_bayes,save_filename,save_path=savepath)
     return df_metrics_bayes
 def save_baseline_trainset_metrics(filename,filepath,include_bert_score=False):

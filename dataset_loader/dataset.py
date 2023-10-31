@@ -9,7 +9,7 @@ from utils.load_participant_section import load_all_sections_timestamps,map_word
 
 
 class LPPDataset(Dataset):
-    def __init__(self, root_dir = deriv_path, lang = 'EN',use_zip = True,include_book = False):
+    def __init__(self, root_dir = deriv_path, lang = 'EN',use_zip = True,include_book = False,return_nii=False):
         """
         Initialize the hierarchical dataset for LPP
 
@@ -42,6 +42,7 @@ class LPPDataset(Dataset):
         if include_book:
             self.book_text = load_full_book()
             self.sections_text = load_full_book_sections()
+        self.return_nii = return_nii
 
     def __len__(self):
         """
@@ -65,10 +66,13 @@ class LPPDataset(Dataset):
         participant_section_files = sorted([f[2] for f in self.samples if f[1].__contains__(participant) ])
         section_nr = participant_section_files.index(section_file) + 1
         file_path = os.path.join(data_path,participant,'func',section_file)
-        data = nib.load(file_path).get_fdata()
 
-        # You can convert data to a PyTorch tensor if needed
-        data = torch.Tensor(data)
+        if self.return_nii:
+            data = nib.load(file_path)
+        else:
+            data = nib.load(file_path).get_fdata()
+            # You can convert data to a PyTorch tensor if needed
+            data = torch.Tensor(data)
 
         sections_timestamps_dict = load_section_timestamps(section = section_nr,as_timedelta=False)
         sections_timestamps_dict = map_words_to_volumes(sections_timestamps_dict)

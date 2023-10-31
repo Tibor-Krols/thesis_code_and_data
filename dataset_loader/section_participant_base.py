@@ -2,7 +2,7 @@ from dataset_loader.dataset import LPPDataset
 from preprocessing.audio.extract_timestamps_words_audio import extract_sentences
 
 class BaseSectionParticipant:
-    def __init__(self,section_participant_dict,include_volume_words_dict=False):
+    def __init__(self,section_participant_dict,include_volume_words_dict=False,return_nii=False):
         self.fmri = section_participant_dict['cog_sequence']
         self.participant = section_participant_dict['subject']
         self.labels = section_participant_dict['labels']
@@ -12,13 +12,17 @@ class BaseSectionParticipant:
             self.volume_words_dict = self.get_words_volume_idx_dict()
         self.section_vocab = self.get_section_vocab()
         self.nr_fmri_frames =self.fmri.shape[3]
+        self.return_nii=return_nii
     def __getitem__(self, index:int):
         """
         get a certain volume of the fmri timeseries based on the index
         :param index:
         :return:
         """
-        return self.fmri[..., index]
+        if self.return_nii:
+            return self.fmri.slicer[...,index]
+        else:
+            return self.fmri[..., index]
 
 
     def get_sentence(self,index):

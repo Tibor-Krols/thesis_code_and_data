@@ -104,7 +104,7 @@ def get_train_test_sections(section_nrs = [i for i in range(1,10)], Ntrain_secti
     train_sections, test_sections = train_test_split(section_nrs, test_size=dict_percentages_sections['test'],
                                                             random_state=42)
     return train_sections,test_sections
-def train_test_split_lpp(dataset,Ntrain_participants=44,Ntrain_sections=8,Ntest_participants =4,Ntest_sections = 1)->tuple[list[int],list[int]]:
+def train_test_split_lpp(dataset,Ntrain_participants=44,Ntrain_sections=8,Ntest_participants =4,Ntest_sections = 1,include_participants_sections=False)->tuple[list[int],list[int]]:
     """
     split based on specified nr of participants and sections
     default train,test validation:
@@ -158,7 +158,28 @@ def train_test_split_lpp(dataset,Ntrain_participants=44,Ntrain_sections=8,Ntest_
     # validation_indices = [i for i, s in enumerate(samples) if
     #                       (s[1] in validation_participants or s[3] in validation_sections) and s[1] not in test_participants
     #                        ]
-    return train_indices,test_indices
+    if include_participants_sections:
+        # TODO: make way to identify classification in test samples; unseen participants, unseen sections, fully unseen
+        participants_dict = {
+            'train':train_participants,
+            'test':test_participants
+        }
+        sections_dict = {
+            'train': train_sections,
+            'test': test_sections
+        }
+        # test_indices_dict = {
+        #     'index': idx
+        # }
+        # test_indices_seen_participants = [i for i, s in enumerate(samples) if
+        #                 (s[1] in test_participants and s[1] in train_participants)
+        #                 ]
+        # test_indices_seen_sections = [i for i, s in enumerate(samples) if
+        #                 (s[3] in test_sections and s[3] in train_sections)
+        #                 ]
+        return train_indices,test_indices, participants_dict,sections_dict
+    else:
+        return train_indices,test_indices
 
 
 def main():

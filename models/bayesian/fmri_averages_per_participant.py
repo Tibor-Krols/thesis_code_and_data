@@ -26,12 +26,15 @@ def main():
     dataset = LPPDataset()
     participant = 'sub-EN057'
     participant_indices = dataset.get_participant_samples_indices(participant)
-    train_indices = participant_indices[:8]
-    test_indices = [participant_indices[-1]]
+    # train_indices, test_indices, participants_dict, sections_dict = train_test_split_lpp(
+    #     dataset,
+    #     include_participants_sections=True)
+    train_indices = participant_indices[:7] + [participant_indices[-1]]
+    test_indices = [participant_indices[7]]
 
-    # calculate_averages_participant(dataset=dataset,
-    #                                indices_participant_sections=train_indices,
-    #                                participant=participant)
+    calculate_averages_participant(dataset=dataset,
+                                   indices_participant_sections=train_indices,
+                                   participant=participant)
 
     participant_dict = load_averages_participant(participant)
 
