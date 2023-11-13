@@ -46,7 +46,16 @@ class BaseSectionParticipant:
     def get_nr_sentences(self):
         return len(self.sentences)
 
-
+    def get_vol_idx_word(self,word:str)->list[int]:
+        """
+        returns list of volume indices for a specific word.
+        :param word:
+        :return:
+        """
+        word_vol_indices = [l['volume_idx'] for l in self.labels if l['word'] == word]
+        if len(word_vol_indices)==0:
+            print(f"{word} does not occur in this participant section")
+        return word_vol_indices
     def get_words_volume_idx(self,volume_idx):
         """
         TODO: improve efficiency
