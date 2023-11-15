@@ -14,13 +14,27 @@ import torch
 import torch.nn.functional as F
 from utils import file_saving
 from tqdm import tqdm
+
+from utils.cortical_masking import make_nifti_image_from_tensor
 from utils.paths import *
 from training.train_test_split import train_test_split_lpp
+import nilearn
 
 # from models.bayesian.correlate_volumes import
 
-def get_likelihood_volume_ps_volume_dict(avg_fmri_word_dict,ps:BaseSectionParticipant,vol_idx:int,similarity_type = "correlation"):
+def get_likelihood_volume_ps_volume_dict(
+        avg_fmri_word_dict,
+        ps:BaseSectionParticipant,
+        vol_idx:int,
+        similarity_type = "correlation",
+        cortical_mask = None
+):
     vol = ps[vol_idx]
+    #mask volume if mask is provided:
+    if cortical_mask is not None:
+        vol =torch.tensor(nilearn.masking.apply_mask(
+            make_nifti_image_from_tensor(vol),
+            mask_img=cortical_mask))
     # calculate similarity
     if similarity_type == 'correlation':
         # calculate correlations
@@ -86,8 +100,8 @@ def predict_words_posterior(posterior_dict, nwords:int)->str:
     pred_words = generate_text(
         word_probabilities=posterior_dict,
         n=nwords
-        # ,
-        # fixed_random_state=True
+        ,
+        fixed_random_state=True
     )
     # pred_words = generate_text_most_probable(
     #     word_probabilities=posterior_dict,
@@ -96,7 +110,7 @@ def predict_words_posterior(posterior_dict, nwords:int)->str:
     return pred_words
 
 
-def predict_words_ps_volume(avg_fmri_word_dict,ps,vol_idx,prior_dict,similarity_type)-> tuple[list[str],list[str]]:
+def predict_words_ps_volume(avg_fmri_word_dict,ps,vol_idx,prior_dict,similarity_type,cortical_mask)-> tuple[list[str],list[str]]:
     """"
     returns a tuple of ground truth of volume, prediction of volume
     """
@@ -105,7 +119,8 @@ def predict_words_ps_volume(avg_fmri_word_dict,ps,vol_idx,prior_dict,similarity_
         avg_fmri_word_dict=avg_fmri_word_dict,
         ps=ps,
         vol_idx=vol_idx,
-        similarity_type=similarity_type
+        similarity_type=similarity_type,
+        cortical_mask=cortical_mask
     )
 
     # posterior
@@ -126,7 +141,7 @@ def predict_words_ps_volume(avg_fmri_word_dict,ps,vol_idx,prior_dict,similarity_
     return ' '.join(ground_truth_vol),pred_words_vol
 
 
-def run_predictions_participant_section(ps,prior_dict,avg_fmri_word_dict,similarity_type):
+def run_predictions_participant_section(ps,prior_dict,avg_fmri_word_dict,similarity_type,cortical_mask):
 
     pred_text = []
     ground_truths = []
@@ -140,7 +155,8 @@ def run_predictions_participant_section(ps,prior_dict,avg_fmri_word_dict,similar
             ps,
             vol_idx,
             prior_dict,
-            similarity_type=similarity_type
+            similarity_type=similarity_type,
+            cortical_mask=cortical_mask
         )
         pred_text.append(pred_vol)
         ground_truths.append(gt_vol)

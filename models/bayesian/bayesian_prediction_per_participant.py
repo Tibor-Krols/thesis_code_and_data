@@ -40,12 +40,26 @@ def main():
     cortical_regions = ['Superior Temporal Gyrus, anterior division']
     cortical_mask = get_oxford_mask(cortical_regions= cortical_regions)
     #mask avg fmri images if mas provided:
-    masked_avg_fmri_word_dict = mask_avg_fmri_word_dict(avg_fmri_word_dict,cortical_mask)
-
+    # compute masked images (if needed)
+    # masked_avg_fmri_word_dict = mask_avg_fmri_word_dict(avg_fmri_word_dict,cortical_mask)
+    # load masked images #TODO: load if present, compute if not
+    masked_avg_fmri_word_dict = load_averages_participant(participant,cortical_regions=cortical_regions)
     # run predictions bayesian fmri
-    df_pred = run_predictions_participant_section(ps, prior_dict, avg_fmri_word_dict, similarity_type)
+    df_pred = run_predictions_participant_section(
+        ps=ps,
+        prior_dict=prior_dict,
+        avg_fmri_word_dict=masked_avg_fmri_word_dict,
+        similarity_type=similarity_type,
+        cortical_mask=cortical_mask
+
+    )
     filename = f"bayes_vol_pred_{ps.participant}_{similarity_type}"
-    filename = f"bayes_vol_pred_{ps.participant}_section{ps.section}_{similarity_type}"
+    if cortical_regions is not None:
+        areas = '_'.join(cortical_regions)
+        filename = f"bayes_vol_pred_{ps.participant}_section{ps.section}_{similarity_type}_masked_{areas}"
+
+    else:
+        filename = f"bayes_vol_pred_{ps.participant}_section{ps.section}_{similarity_type}"
 
     pred_file_path = pred_path / 'bayesian'/'per_participant'
     # save predictions

@@ -6,11 +6,9 @@ import numpy as np
 from nilearn import datasets, image, plotting
 from nilearn.image import resample_img
 import nibabel as nib
-
+from tqdm import tqdm
 from models.bayesian.fmri_averages_per_participant import load_averages_participant
-
-
-
+import torch
 
 def resample_mask(mask):
     desired_affine = np.array(
@@ -118,9 +116,11 @@ def make_nifti_image_from_tensor(fmri_t):
 
 
 def mask_avg_fmri_word_dict(avg_fmri_word_dict,cortical_mask):
+    """function that applies a cortical mask to the dict of average fmri volumes per word"""
     masked_avg_fmri_word_dict = {}
     for word,vol in tqdm(avg_fmri_word_dict.items()):
-        masked_avg_fmri_word_dict[word] = nilearn.masking.apply_mask(
+        masked_avg_fmri_word_dict[word] = torch.tensor(nilearn.masking.apply_mask(
             make_nifti_image_from_tensor(vol),
-            mask_img=cortical_mask)
+            mask_img=cortical_mask))
+
     return masked_avg_fmri_word_dict

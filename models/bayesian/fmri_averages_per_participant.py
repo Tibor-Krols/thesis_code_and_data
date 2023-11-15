@@ -11,14 +11,19 @@ from models.bayesian.calculate_fmri_averages import calculate_averages
 def calculate_averages_participant(dataset,indices_participant_sections,participant):
     calculate_averages(dataset,indices_participant_sections=indices_participant_sections,participant=participant)
 
-def load_averages_participant(participant:str,folderpath = data_path / 'word_averages_participants' ):
+def load_averages_participant(participant:str,folderpath = data_path / 'word_averages_participants',cortical_regions =None):
     """
     example filename 'word_averages_fmri_dict_EN-sub57.pt'
     :param participant:
     :param folderpath:
     :return:
     """
-    filename = f'{participant}_word_averages_fmri_dict.pt'
+    if cortical_regions is not None:
+        area_names = '_'.join(cortical_regions)
+        filename = f'{participant}_word_averages_fmri_dict_masked_{area_names}.pt'
+
+    else:
+        filename = f'{participant}_word_averages_fmri_dict.pt'
     filepath = folderpath/filename
     return load(filepath)
 

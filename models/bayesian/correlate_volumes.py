@@ -71,7 +71,7 @@ def main():
     ps = BaseSectionParticipant(dataset[0], include_volume_words_dict=True)
     avg_fmri_word_dict = load_averages()
 
-    # vol1 = ps[1]
+    vol1 = ps[1]
     # vol2 = avg_fmri_word_dict['magnificent']
     # corr = calulate_correlation(vol1, vol2)
     cor_vec_vol = calulate_word_correlations(avg_fmri_word_dict, vol1)
