@@ -81,7 +81,7 @@ def load_audio_timestamps(section,language = 'EN',as_timedelta = True):
     return wordlist
 
 
-def create_all_word_timestamp_files():
+def create_all_word_timestamp_files(preprocess_book = False):
     # load textgrid file
     #TODO: change to 9 sections (range(1,10)
     for section in range(1,10):
@@ -97,6 +97,7 @@ def create_all_word_timestamp_files():
              }
             for entry in wordlist if preprocess_text(entry['word']) != ''
         ]
+        # TODO: add preprcessing of text if preprocess_book = True
         save_audio_timestamps(wordlist=wordlist,section=section)
 
 

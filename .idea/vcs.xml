@@ -4,7 +4,8 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external_repos/TFF" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external_repos/UniCoRN" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/external_repos/nn-decoding" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external_repos/lpp_data" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external_repos/nn_decoding" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external_repos/semantic-decoding" vcs="Git" />
   </component>
 </project>

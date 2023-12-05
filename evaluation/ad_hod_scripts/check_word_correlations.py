@@ -75,7 +75,12 @@ def main():
 
 
     # sec = dataset[0]['cog_sequence']
-    ps = BaseSectionParticipant(dataset[7],return_nii=True)
+    participant = 'sub-EN057'
+
+    participant_indices = dataset.get_participant_samples_indices(participant)
+    correlation_index = participant_indices[7] #because section 8 is left out from the averages
+
+    ps = BaseSectionParticipant(dataset[correlation_index],return_nii=True)
     avg_fmri_word_dict = load_averages_participant(ps.participant)
 
     # ps = BaseSectionParticipant(dataset[12],return_nii=True)
