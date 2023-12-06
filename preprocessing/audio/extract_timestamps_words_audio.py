@@ -46,8 +46,11 @@ def extract_word_timestamps(data:str)-> list[dict]:
                 })
     return word_list
 
-def save_audio_timestamps(wordlist,section,language = 'EN'):
-    filename = f'audio_word_timestamps{language}_section{section}.txt'
+def save_audio_timestamps(wordlist,section,language = 'EN',embed_type:str=None):
+    if embed_type is not None:
+        filename = f'audio_word_timestamps{language}_section{section}_{embed_type}.txt'
+    else:
+        filename = f'audio_word_timestamps{language}_section{section}.txt'
     save_path = os.path.join(annot_path,'EN','processed')
     file_path = os.path.join(save_path, filename)
     if not os.path.exists(save_path):
@@ -56,31 +59,52 @@ def save_audio_timestamps(wordlist,section,language = 'EN'):
         json.dump(wordlist, fout)
 
 
-def load_audio_timestamps(section,language = 'EN',as_timedelta = True):
+def load_audio_timestamps(section,language = 'EN',as_timedelta = True,embed_type:str=None):
     """
     loads the json file and converts time in seconds to timedelta object
     :param section:
     :param language:
     :return:
     """
-    filename = f'audio_word_timestamps{language}_section{section}.txt'
+    if embed_type is not None:
+        filename = f'audio_word_timestamps{language}_section{section}_{embed_type}.txt'
+    else:
+        filename = f'audio_word_timestamps{language}_section{section}.txt'
     save_path = os.path.join(annot_path,'EN','processed')
     file_path = os.path.join(save_path, filename)
     # Open and read the JSON file
     with open(file_path, 'r') as json_file:
         wordlist = json.load(json_file)
     if as_timedelta:
-        wordlist = [{
-            'word':w['word'],
-            'start': timedelta(seconds=w['start']),
-            'end':timedelta(seconds=w['end'])
-        } for w in wordlist]
+        if embed_type is not None:
+            wordlist = [{
+                'word': w['word'],
+                'start': timedelta(seconds=w['start']),
+                'end': timedelta(seconds=w['end']),
+                embed_type:w[embed_type]
+            } for w in wordlist]
+        else:
+            wordlist = [{
+                'word': w['word'],
+                'start': timedelta(seconds=w['start']),
+                'end': timedelta(seconds=w['end'])
+            } for w in wordlist]
+
     else:
-        wordlist = [{
-            'word': w['word'],
-            'start': w['start'],
-            'end': w['end']
-        } for w in wordlist]
+        if embed_type is not None:
+            wordlist = [{
+                'word': w['word'],
+                'start': w['start'],
+                'end': w['end'],
+                embed_type : w[embed_type]
+            } for w in wordlist]
+        else:
+            wordlist = [{
+                'word': w['word'],
+                'start': w['start'],
+                'end': w['end']
+            } for w in wordlist]
+
     return wordlist
 
 
@@ -93,15 +117,28 @@ def create_all_word_timestamp_files(preprocess_book = False,language:str='EN', e
     if embed_type is not None:
         df_embed = load_embeddings(embed_type)
         df[embed_type] = df_embed[embed_type]
+        df[embed_type] = df[embed_type].apply(lambda x: x.tolist())
+
     # load textgrid file
     for section in df.section.unique():
     #TODO: change to 9 sections (range(1,10)
     # for section in range(3,7):
     # Convert DataFrame to list of dictionaries
-        wordlist = [
-            {'start': row['onset'], 'end': row['offset'], 'word': row['word']}
-            for _, row in df[df.section==section].iterrows()
-        ]
+        if embed_type is not None:
+            wordlist = [
+                {
+                    'start': row['onset'],
+                    'end': row['offset'],
+                    'word': row['word'],
+                    embed_type : row[embed_type]
+                }
+                for _, row in df[df.section == section].iterrows()
+            ]
+        else:
+            wordlist = [
+                {'start': row['onset'], 'end': row['offset'], 'word': row['word']}
+                for _, row in df[df.section==section].iterrows()
+            ]
         # data = load_textgrid(section=section)
         # wordlist = extract_word_timestamps(data)
         # preprocess wordslist
@@ -114,7 +151,7 @@ def create_all_word_timestamp_files(preprocess_book = False,language:str='EN', e
         #     for entry in wordlist if preprocess_text(entry['word']) != ''
         # ]
         # TODO: add preprcessing of text if preprocess_book = True
-        save_audio_timestamps(wordlist=wordlist,section=section)
+        save_audio_timestamps(wordlist=wordlist,section=section,embed_type=embed_type)
 
 def create_all_word_timestamp_files_depricated(preprocess_book = False):
     # load textgrid file
@@ -164,9 +201,13 @@ def extract_sentences(wordlist):
 
 
 # TODO: make load_section_timestamps and map for specific section and map_words_to_volumes to work for one section
-def load_section_timestamps(section:int, as_timedelta = True):
+def load_section_timestamps(section:int, as_timedelta = True,embed_type:str = None):
     section_dict = {
-        section: load_audio_timestamps(section=section,as_timedelta=as_timedelta)
+        section: load_audio_timestamps(
+            section=section,
+            as_timedelta=as_timedelta,
+            embed_type=embed_type
+        )
     }
     return section_dict
 def load_all_sections_timestamps(as_timedelta = True):
@@ -195,9 +236,12 @@ def load_full_book_sections():
     # book_text = ' '.join(section for section in book_text)
     return sections_text
 
+
+
 if __name__ == '__main__':
     print('creating all files')
-    create_all_word_timestamp_files()
+    create_all_word_timestamp_files(embed_type="BERT")
+    print('done')
 
 # word_average_dict = {
 #     'w1':v1,

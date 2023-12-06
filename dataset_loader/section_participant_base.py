@@ -1,10 +1,11 @@
+import numpy as np
 import torch
 
 from dataset_loader.dataset import LPPDataset
 from preprocessing.audio.extract_timestamps_words_audio import extract_sentences
 
 class BaseSectionParticipant:
-    def __init__(self,section_participant_dict,include_volume_words_dict=False,return_nii=False):
+    def __init__(self,section_participant_dict,include_volume_words_dict=False,return_nii=False,embed_type:str=None):
         self.fmri = section_participant_dict['cog_sequence']
         self.participant = section_participant_dict['subject']
         self.labels = section_participant_dict['labels']
@@ -15,6 +16,7 @@ class BaseSectionParticipant:
         self.section_vocab = self.get_section_vocab()
         self.nr_fmri_frames =self.fmri.shape[3]
         self.return_nii=return_nii
+        self.embed_type = embed_type
     def __getitem__(self, index:int):
         """
         get a certain volume of the fmri timeseries based on the index
@@ -58,6 +60,12 @@ class BaseSectionParticipant:
         if len(word_vol_indices)==0:
             print(f"{word} does not occur in this participant section")
         return word_vol_indices
+
+    def get_embeds_volume_idx(self,volume_idx:int):
+        return np.array([l[self.embed_type] for l in self.labels if volume_idx in l['volume_idx']])
+
+    def get_mean_embed_volume_idx(self,volume_idx:int):
+        return np.mean(self.get_embeds_volume_idx(volume_idx),axis = 0)
     def get_words_volume_idx(self,volume_idx):
         """
         TODO: improve efficiency
@@ -82,8 +90,10 @@ class BaseSectionParticipant:
 
 
 def main():
-    dataset = LPPDataset()
-    ps = BaseSectionParticipant(dataset[0],include_volume_words_dict=True)
+    dataset = LPPDataset(embed_type='BERT')
+    ps = BaseSectionParticipant(dataset[0],include_volume_words_dict=True,embed_type='BERT')
+    mean_embed_vol = ps.get_mean_embed_volume_idx(2)
+    print(mean_embed_vol)
     vol = ps[0]
     sent_idx = 4
     sent = ps.get_sentence(sent_idx)

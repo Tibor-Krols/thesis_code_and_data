@@ -4,13 +4,14 @@ from torch.utils.data import Dataset
 from transformers import BartTokenizer
 
 from preprocessing.audio.extract_timestamps_words_audio import load_full_book, load_full_book_sections
+from utils.embeddings import load_embeddings
 from utils.paths import *
 import nibabel as nib
 from utils.load_participant_section import load_all_sections_timestamps,map_words_to_volumes,load_section_timestamps
 
 
 class LPPDataset(Dataset):
-    def __init__(self, root_dir = deriv_path, lang = 'EN',use_zip = True,include_book = False,return_nii=False):
+    def __init__(self, root_dir = deriv_path, lang = 'EN',use_zip = True,include_book = False,return_nii=False, embed_type:str = None):
         """
         Initialize the hierarchical dataset for LPP
 
@@ -18,9 +19,10 @@ class LPPDataset(Dataset):
             root_dir (str): Root directory of the dataset.
         """
         super().__init__()
+        self.lang=lang
         self.root_dir = root_dir
         self.participant_folders = sorted(os.listdir(root_dir))
-        self.participant_folders = [f for f in self.participant_folders if f.__contains__(lang)]
+        self.participant_folders = [f for f in self.participant_folders if f.__contains__(self.lang)]
         # Create a list of (participant_folder, section_folder) pairs
         self.samples = []
         for participant_folder in self.participant_folders:
@@ -44,6 +46,8 @@ class LPPDataset(Dataset):
             self.book_text = load_full_book()
             self.sections_text = load_full_book_sections()
         self.return_nii = return_nii
+        self.embed_type = embed_type
+        # self.df_annot = self.load_annotations_df(language=self.lang)
 
     def __len__(self):
         """
@@ -75,7 +79,7 @@ class LPPDataset(Dataset):
             # You can convert data to a PyTorch tensor if needed
             data = torch.Tensor(data)
 
-        sections_timestamps_dict = load_section_timestamps(section = section_nr,as_timedelta=False)
+        sections_timestamps_dict = load_section_timestamps(section = section_nr,as_timedelta=False, embed_type = self.embed_type)
         sections_timestamps_dict = map_words_to_volumes(sections_timestamps_dict)
         labels = sections_timestamps_dict[section_nr]
         # return data, participant,section
@@ -107,8 +111,22 @@ class LPPDataset(Dataset):
             return BartTokenizer.from_pretrained("facebook/bart-large")
         else:
             raise NotImplementedError
+
+    # def load_annotations_df(self,language:str = 'EN'):
+    #     # TODO add preprocessing of text here if needed
+    #     # load dataframe with words and timestamps
+    #     filename = f'lpp{language}_word_information.csv'
+    #     file_path = annot_path / language / filename
+    #     df = pd.read_csv(file_path)
+    #     df['word'] = df['word'].astype(str)  # cast nrs in text into string
+    #     if self.embed_type is not None:
+    #         df_embed = load_embeddings(self.embed_type)
+    #         df[self.embed_type] = df_embed[self.embed_type]
+
+
 def main():
-    dataset = LPPDataset(deriv_path)
+    dataset = LPPDataset(embed_type='GloVe')
+    # dataset[0]
     dataset.get_participant_section_data('sub-EN083', 1)
 
     participants = dataset.get_participants()
