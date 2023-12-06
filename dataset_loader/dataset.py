@@ -1,6 +1,7 @@
 import os
 import torch
 from torch.utils.data import Dataset
+from transformers import BartTokenizer
 
 from preprocessing.audio.extract_timestamps_words_audio import load_full_book, load_full_book_sections
 from utils.paths import *

@@ -23,6 +23,7 @@ def main():
 
 
     n_volumes = 150
+    # n_volumes = ps.nr_fmri_frames
     # get images
     subject_images = ps.fmri[...,:n_volumes].numpy()
     # do pca images?

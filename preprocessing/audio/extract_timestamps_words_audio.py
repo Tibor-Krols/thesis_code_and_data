@@ -1,4 +1,7 @@
+import pandas as pd
+
 from baseline_lpp.baseline import preprocess_text
+from utils.embeddings import load_embeddings
 from utils.paths  import *
 import os
 import re
@@ -39,7 +42,7 @@ def extract_word_timestamps(data:str)-> list[dict]:
             word_list.append({
                 'word':str(word),
                 'start':float(xmin),
-                'end':float(xmax)
+                'end':float(xmax),
                 })
     return word_list
 
@@ -81,7 +84,39 @@ def load_audio_timestamps(section,language = 'EN',as_timedelta = True):
     return wordlist
 
 
-def create_all_word_timestamp_files(preprocess_book = False):
+def create_all_word_timestamp_files(preprocess_book = False,language:str='EN', embed_type:str = None):
+    # load dataframe with words and timestamps
+    filename = f'lpp{language}_word_information.csv'
+    file_path = annot_path / language / filename
+    df = pd.read_csv(file_path)
+    df['word'] = df['word'].astype(str) #cast nrs in text into string
+    if embed_type is not None:
+        df_embed = load_embeddings(embed_type)
+        df[embed_type] = df_embed[embed_type]
+    # load textgrid file
+    for section in df.section.unique():
+    #TODO: change to 9 sections (range(1,10)
+    # for section in range(3,7):
+    # Convert DataFrame to list of dictionaries
+        wordlist = [
+            {'start': row['onset'], 'end': row['offset'], 'word': row['word']}
+            for _, row in df[df.section==section].iterrows()
+        ]
+        # data = load_textgrid(section=section)
+        # wordlist = extract_word_timestamps(data)
+        # preprocess wordslist
+        # wordlist = [
+        #     {
+        #         'start':entry['start'],
+        #         'end': entry['end'],
+        #         'word': preprocess_text(entry['word']),
+        #      }
+        #     for entry in wordlist if preprocess_text(entry['word']) != ''
+        # ]
+        # TODO: add preprcessing of text if preprocess_book = True
+        save_audio_timestamps(wordlist=wordlist,section=section)
+
+def create_all_word_timestamp_files_depricated(preprocess_book = False):
     # load textgrid file
     #TODO: change to 9 sections (range(1,10)
     for section in range(1,10):
@@ -163,8 +198,6 @@ def load_full_book_sections():
 if __name__ == '__main__':
     print('creating all files')
     create_all_word_timestamp_files()
-
-
 
 # word_average_dict = {
 #     'w1':v1,

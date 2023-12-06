@@ -1,3 +1,5 @@
+import torch
+
 from dataset_loader.dataset import LPPDataset
 from preprocessing.audio.extract_timestamps_words_audio import extract_sentences
 
