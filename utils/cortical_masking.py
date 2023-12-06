@@ -47,12 +47,16 @@ def get_destrieux_mask():
     plotting.show()
     return prefrontal_mask_destrieux
 
-def get_oxford_mask(cortical_regions : list[str]):
+def get_oxford_mask(cortical_regions : list[str],select_all_regions=False):
     """Cortical regions need to be part of the atlas """
 
     # Load Harvard-Oxford cortical probabilistic atlas (50% threshold by default)
     harvard_oxford = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm')
 
+    #select all regions (except background) if specified:
+    if select_all_regions:
+        cortical_regions = harvard_oxford.labels
+        cortical_regions.remove('Background')
     # get index of cortical regions
     cortical_indices = [harvard_oxford.labels.index(region) for region in cortical_regions]
 
@@ -60,8 +64,15 @@ def get_oxford_mask(cortical_regions : list[str]):
     shape = cortical_mask.shape
     affine = cortical_mask.affine
     cortical_mask = cortical_mask.get_fdata()
+    if cortical_regions[0] == 'Background':
+        cortical_mask = 1 - cortical_mask
     for index in cortical_indices[1:]:
-        cortical_mask += image.math_img('img == {}'.format(index), img=harvard_oxford.maps).get_fdata()
+        if harvard_oxford.labels[index] == 'Background':
+            print('background')
+            cortical_mask += 1- image.math_img('img == {}'.format(index), img=harvard_oxford.maps).get_fdata()
+        else:
+            cortical_mask += image.math_img('img == {}'.format(index), img=harvard_oxford.maps).get_fdata()
+
 
     # convert to nifti imgage
     header = nib.nifti1.Nifti1Header()
@@ -102,7 +113,16 @@ def get_aal_mask():
     plotting.plot_roi(prefrontal_mask, title='Prefrontal Cortex Mask (AAL)')
     plotting.show()
     return prefrontal_mask
-
+def make_nifti_image_from_numpy(fmri_n):
+    affine = np.array(
+        [[2., 0., 0., -72.],
+         [0., 2., 0., -106.],
+         [0., 0., 2., -64.],
+         [0., 0., 0., 1.]])
+    header = nib.nifti1.Nifti1Header()
+    header.set_data_shape(fmri_n.shape)
+    nifti_image = nib.nifti1.Nifti1Image(fmri_n, affine=affine, header=header)
+    return nifti_image
 def make_nifti_image_from_tensor(fmri_t):
     affine = np.array(
         [[2., 0., 0., -72.],
@@ -114,6 +134,13 @@ def make_nifti_image_from_tensor(fmri_t):
     nifti_image = nib.nifti1.Nifti1Image(fmri_t.numpy(), affine=affine, header=header)
     return nifti_image
 
+def mask_timeseries(timeseries:np.array,cortical_mask):
+    return np.array([nilearn.masking.apply_mask(
+        make_nifti_image_from_numpy(timeseries[...,i]),
+        mask_img=cortical_mask)
+        for i in range(timeseries.shape[3])
+    ])
+    # return
 
 def mask_avg_fmri_word_dict(avg_fmri_word_dict,cortical_mask):
     """function that applies a cortical mask to the dict of average fmri volumes per word"""
@@ -124,3 +151,11 @@ def mask_avg_fmri_word_dict(avg_fmri_word_dict,cortical_mask):
             mask_img=cortical_mask))
 
     return masked_avg_fmri_word_dict
+
+
+if __name__ == '__main__':
+    get_oxford_mask(cortical_regions=[],select_all_regions=True)
+    cortical_regions = ['Frontal Pole','Occipital Pole']
+    reg_mask = get_oxford_mask(cortical_regions=cortical_regions)
+    bg = get_oxford_mask(cortical_regions=['Background'])
+    print('done')

@@ -8,91 +8,88 @@ from dataset_loader.section_participant_base import BaseSectionParticipant
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-from external_repos.nn_decoding.src import util
+# from external_repos.nn_decoding.src import util
 from sklearn.metrics.pairwise import cosine_similarity
 
 import numpy as np
+from utils.cortical_masking import get_oxford_mask, mask_timeseries
+
+
 def convert_to_array(s):
     # Remove brackets, replace '\n' with space, split by space, and convert to float
     return np.array([float(x) for x in s.strip('[]').replace('\n', ' ').split()])
 
 def main():
-    dataset = LPPDataset()
+    embed_type = 'BERT'
+    dataset = LPPDataset(embed_type=embed_type)
     participant = 'sub-EN057'
-    ps = BaseSectionParticipant(dataset[0])
-
-
-    n_volumes = 150
-    # n_volumes = ps.nr_fmri_frames
-    # get images
-    subject_images = ps.fmri[...,:n_volumes].numpy()
-    # do pca images?
-    # test = torch.cat([ps[i] for i in range(5)], dim = 2)
-    # test = torch.cat([ps[i] for i in range(5)], dim=-1)
-
-    # pca = PCA(project).fit(subject_images)
-    # mask images?
+    # TODO: get images (masked) and embeddings for multiple participant sections.
+    ps = BaseSectionParticipant(dataset[0],embed_type=embed_type)
+    n_volumes = ps.nr_fmri_frames
+    # n_volumes = 15 #small for testing purposes
 
     # get words per volume
     words = [ps.get_words_volume_idx(i) for i in range(n_volumes)]
-    no_words = [0]+[len(l) for l in words]
-    index_words = np.cumsum(no_words)
+    # select indices that contain words
+    indices_vols_with_words = [
+        i for i in range(n_volumes) if words[i] != []
+    ]
+
+    # get images
+    subject_images = ps.fmri[...,indices_vols_with_words].numpy()
+
+    # mask_images
+    # load mask
+    cortex_region = 'Superior Temporal Gyrus, anterior division'
+    cortical_mask = get_oxford_mask(cortical_regions= [cortex_region])
+    # mask_volumes
+    subject_images = mask_timeseries(timeseries= subject_images,cortical_mask=cortical_mask)
 
     # load embeddings
-    embed_type = 'GloVe'
-    path = f'F:\\dataset\\annotation\\EN\\lppEN_word_embeddings_{embed_type}.csv'
-    df = pd.read_csv(path)
-    df[embed_type] = df[embed_type].apply(convert_to_array)
-
-    # get embeddings of volumes: calculate mean if multiple words.
-    # TODO: make this more neat, by actually extracting word embeeddings correctly
-    encodings = np.array([df[embed_type].iloc[index_words[i]:index_words[i+1]].mean() for i in range(len(no_words)-1)])
-    # encodings = [df.BERT.iloc[no_words[i]:no_words[i+1]].mean() for i in range(len(no_words)-1)]
-
-
-    assert len(encodings)== subject_images.shape[3]
+    # # get embeddings of volumes: calculate mean if multiple words.
+    encodings = np.array([ps.get_mean_embed_volume_idx(i) for i in indices_vols_with_words])
 
     # Final data prep: normalize.
     X = subject_images - subject_images.mean(axis=0)
     X = X / np.linalg.norm(X, axis=1, keepdims=True)
-    X=np.nan_to_num(X) #fill na
+    # X=np.nan_to_num(X) #fill na (not needed now
     Y = encodings - encodings.mean(axis=0)
     Y = Y / np.linalg.norm(Y, axis=1, keepdims=True)
-    # Y = Y.T
 
 
 
     # Prepare nested CV.
     # Inner CV is responsible for hyperparameter optimization;
     # # outer CV is responsible for prediction.
-    # state = 42
-    # n_folds = 3
-    # ALPHAS = [1e-3]
-    # inner_cv = KFold(n_splits=n_folds, shuffle=True, random_state=state)
-    # outer_cv = KFold(n_splits=n_folds, shuffle=True, random_state=state)
-    #
-    # # Run inner CV.
-    # gs = GridSearchCV(Ridge(fit_intercept=False,),
-    #                   {"alpha": ALPHAS}, cv=inner_cv, verbose=10)
-    # # Run outer CV.
-    # decoder_predictions = cross_val_predict(gs, X, Y, cv=outer_cv)
+    state = 42
+    n_folds = 3
+    ALPHAS = [1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e1]
+    inner_cv = KFold(n_splits=n_folds, shuffle=True, random_state=state)
+    outer_cv = KFold(n_splits=n_folds, shuffle=True, random_state=state)
+
+    # Run inner CV.
+    gs = GridSearchCV(Ridge(fit_intercept=False,),
+                      {"alpha": ALPHAS}, cv=inner_cv, verbose=10)
+    # Run outer CV.
+    decoder_predictions = cross_val_predict(gs, X, Y, cv=outer_cv)
 
 
 
     # new attempt ridge regression:
 
-    # Assuming X is your fMRI data and Y is your labels
-    X_shape = X.shape
-    Y_shape = Y.shape
-
     # Reshape the fMRI data to 2D (flattening the spatial dimensions)
-    X_reshaped = X.reshape((X_shape[0] * X_shape[1] * X_shape[2], X_shape[3])).T
+    if X[...,0].shape == (73, 90, 74):
+        X = X.reshape((X.shape[0] * X.shape[1] * X.shape[2],X.shape[3])).T
+
+    # select indices with words from x
+    # X = X[indices_vols_with_words,]
+    assert len(encodings)== len(X)
 
     # Reshape the labels to 2D
     # Y_reshaped = Y
 
     # Split the data into training and testing sets
-    X_train, X_test, Y_train, Y_test = train_test_split(X_reshaped, Y, test_size=0.2, random_state=42)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
     # Fit a Ridge Regression model
     alpha = 1.0  # You can adjust this regularization parameter
@@ -108,14 +105,25 @@ def main():
     mse = mean_squared_error(Y_test, Y_pred)
 
     # cosine similarity
-
-    # Assuming Y_pred and Y_test have shape (30, 300)
+    assert Y_test.shape == Y_pred.shape
     cosine_similarities = cosine_similarity(Y_pred, Y_test)
-    from numpy import dot
-    from numpy.linalg import norm
-    a = Y_pred
-    b = Y_test
-    cos_sim = dot(a, b) / (norm(a) * norm(b))
+    cosine_similarities = np.diagonal(cosine_similarities, axis1=0, axis2=1)
+    print(cosine_similarities.mean())
+
+
+    # pred on train data
+    Y_pred_train = ridge_model.predict(X_train)
+    cosine_similarities_train = cosine_similarity(Y_pred_train, Y_train)
+    cosine_similarities_train = np.diagonal(cosine_similarities_train, axis1=0, axis2=1)
+    print(cosine_similarities_train.mean())
+
+
+    #evaluate cross val predictions
+    # decoder_predictions
+    # Y_pred_train = ridge_model.predict(X_train)
+    cosine_similarities_cross_val = cosine_similarity(decoder_predictions, Y)
+    cosine_similarities_cross_val = np.diagonal(cosine_similarities_cross_val, axis1=0, axis2=1)
+    print(cosine_similarities_cross_val.mean())
 
     print('end')
 

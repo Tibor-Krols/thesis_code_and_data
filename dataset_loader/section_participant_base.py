@@ -62,10 +62,16 @@ class BaseSectionParticipant:
         return word_vol_indices
 
     def get_embeds_volume_idx(self,volume_idx:int):
-        return np.array([l[self.embed_type] for l in self.labels if volume_idx in l['volume_idx']])
+        return np.array(
+            [
+                l[self.embed_type]
+                for l in self.labels
+                if volume_idx in l['volume_idx']
+            ]
+        )
 
     def get_mean_embed_volume_idx(self,volume_idx:int):
-        return np.mean(self.get_embeds_volume_idx(volume_idx),axis = 0)
+        return  np.mean(self.get_embeds_volume_idx(volume_idx),axis = 0)
     def get_words_volume_idx(self,volume_idx):
         """
         TODO: improve efficiency

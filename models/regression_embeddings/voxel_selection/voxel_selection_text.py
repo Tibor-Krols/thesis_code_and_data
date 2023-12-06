@@ -137,9 +137,10 @@ def train_voxelwise_target_prediction_models(examples, targets, **kwargs):
 
 
 def main():
-    dataset = LPPDataset()
+    embed_type = 'GloVe'
+    dataset = LPPDataset(embed_type=embed_type)
     participant = 'sub-EN057'
-    ps = BaseSectionParticipant(dataset[0])
+    ps = BaseSectionParticipant(dataset[0],embed_type=embed_type)
 
 
     n_volumes = 10
@@ -159,7 +160,8 @@ def main():
 
     # get embeddings of volumes: calculate mean if multiple words.
     # TODO: make this more neat, by actually extracting word embeeddings correctly
-    encodings = np.array([df[embed_type].iloc[index_words[i]:index_words[i+1]].mean() for i in range(len(no_words)-1)])
+    # encodings = np.array([df[embed_type].iloc[index_words[i]:index_words[i+1]].mean() for i in range(len(no_words)-1)])
+    encodings = np.array([ps.get_mean_embed_volume_idx(i) for i in range(n_volumes)])
 
 
     # Final data prep: normalize.
@@ -181,6 +183,7 @@ def main():
     # DO VOXEL SELECTION
     #load cortical mask
     # TODO: only select cortical region: no gray matter + background
+
     # cortex_region = 'Superior Temporal Gyrus, anterior division'
     cortex_region = 'Background'
     voxel_mask = get_oxford_mask(cortical_regions= [cortex_region])
