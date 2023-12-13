@@ -119,6 +119,42 @@ def load_train_set_text():
     text = " ".join([t for t in train_sections_text.values()])
     return text
 
+def run_baseline_volumes():
+    """
+    runs baseline
+    :return: list of ground truth sentences, list of predicted sentences based on probability
+    """
+    # Read and preprocess the text file
+    # text = load_train_set_text()
+    # text = load_lpp_book()
+    text_sections = load_full_book_sections()
+    sections = list(text_sections.keys())
+    text = ''
+    for section in sections:
+        text += text_sections[section]
+        text += ' '
+
+    # text = load_lpp_book()
+    preprocessed_text = preprocess_text(text=text)
+
+    # calculate word probabilities
+    word_probabilities = get_word_probabilities(preprocessed_text)
+
+    # extract sentences and preprocess
+    # sentences = sent_tokenize(text)
+    # preproc_sentences = [preprocess_text(s) for s in sentences]
+
+    # generate probability sentences with the same lenght
+    # preproc_sentences = preproc_sentences[:5] # TODO remove this, for now for saving compute
+    volumes_dict = get_volumes_dict()
+
+    gen_sentences = generate_probability_sequences(
+        volumes_dict=volumes_dict,
+        word_probabilities=word_probabilities
+    )
+    return volumes_dict,gen_sentences
+
+
 def run_baseline_trainset_volumes():
     """
     runs baseline
