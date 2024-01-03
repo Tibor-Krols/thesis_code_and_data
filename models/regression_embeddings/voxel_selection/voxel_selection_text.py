@@ -154,7 +154,7 @@ def main():
 
 
     # load embeddings
-    embed_type = 'GloVe'
+    # embed_type = 'GloVe'
     df = load_embeddings(embed_type)
 
 
