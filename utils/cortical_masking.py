@@ -155,9 +155,12 @@ def mask_avg_fmri_word_dict(avg_fmri_word_dict,cortical_mask):
 
     return masked_avg_fmri_word_dict
 
+def show_mask(mask,title = ''):
+    plotting.plot_roi(mask,title=title)
+    plotting.show()
 
 if __name__ == '__main__':
-    mask = get_aal_mask(['Cerebelum_Crus1_L', 'Cerebelum_Crus1_R'])
+    mask = get_aal_mask(['Cerebelum_Crus1_L', 'Cerebelum_Crus1_R'],select_all_regions=True)
     get_oxford_mask(cortical_regions=[],select_all_regions=True)
     cortical_regions = ['Frontal Pole','Occipital Pole']
     reg_mask = get_oxford_mask(cortical_regions=cortical_regions)

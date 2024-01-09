@@ -1,13 +1,67 @@
+import os
+from pathlib import Path
+from tqdm import tqdm
 import numpy as np
 from scipy.linalg import block_diag
 
 from dataset_loader.dataset import LPPDataset
 from dataset_loader.section_participant_base import BaseSectionParticipant
-from utils.cortical_masking import get_oxford_mask
+from utils.cortical_masking import get_oxford_mask, get_aal_mask, mask_timeseries
 from utils.embeddings import load_embeddings
 import collections
+import nibabel as nib
+from utils.paths import *
+
+def save_selected_voxel_mask(mask,
+                             participant: str | list[str],
+                             embed_type:str,
+                             filepath:Path= data_path /'voxel_selection_masks',
+                             ):
+    if isinstance(participant,str):
+        filepath = filepath/'per_participant'
+    else:
+        filepath = filepath/'across_participants'
+    os.makedirs(filepath,exist_ok=True)
+    filename = f"{participant}_{embed_type}_selected_voxel_mask.nii.gz"
+    nib.save(mask, filepath/filename)
+def load_selected_voxel_mask(participant: str | list[str],
+                             embed_type:str,
+                             filepath:Path= data_path /'voxel_selection_masks',
+                             selection_criterium:str ='max'
+                             ):
+    if selection_criterium =='max':
+        filepath = filepath
+    elif selection_criterium == 'avg':
+        filepath = filepath/'avg'
+
+    if isinstance(participant,str):
+        filepath = filepath/'per_participant'
+    else:
+        filepath = filepath/'across_participants'
+
+    filename = f"{participant}_{embed_type}_selected_voxel_mask.nii.gz"
+
+    return nib.load(filepath/filename)
 
 
+def create_mask_from_voxel_selection(voxel_selection_indices, cortical_mask):
+    # Get the shape of the original volume
+    original_shape = (73, 90, 74)
+    affine = cortical_mask.affine
+    # get the indices of the original cortical mask
+    indices = np.where(cortical_mask.get_fdata().flatten() > 0)[0]
+    indices_selected = indices[voxel_selection_indices]
+
+    # Create an empty mask with the original shape
+    new_mask = np.zeros(original_shape)
+
+    # Set the values at the subset indices to 1
+    new_mask[np.unravel_index(indices_selected, original_shape)] = 1
+    # convert to nifti imgage
+    header = nib.nifti1.Nifti1Header()
+    header.set_data_shape(original_shape)
+    mask_selected_voxels = nib.nifti1.Nifti1Image(new_mask, affine=affine, header=header)
+    return mask_selected_voxels
 def find_top_n_indices(scores, n):
     # Use argsort to get the indices that would sort the array
     sorted_indices = np.argsort(scores)
@@ -102,12 +156,12 @@ def train_voxelwise_target_prediction_models(examples, targets, **kwargs):
 
         targets_per_group = targets[indices_train, :]
 
-    for v in range(m):
-        if v % 1000 == 0:
-            print('iter:', v)
+    for v in tqdm(range(m)):
+        # if v % 1000 == 0:
+        #     print('iter:', v)
 
         if voxel_mask[v]:
-            print(v)
+            # print(v)
             if use_searchlight:
                 # nn = meta.number_of_neighbours(v)
                 # nn = meta['voxelsToNeighbours'][v]
@@ -135,61 +189,92 @@ def train_voxelwise_target_prediction_models(examples, targets, **kwargs):
     return scores
 
 
+def load_masked_volumes_embeddings(
+        dataset:LPPDataset,
+        participant:str,
+        cortical_mask,
+        embed_type:str,
+        select_all_regions: bool = False,
+        sections:list[int]=range(1,10)
+):
+    # initialize variables
+    encodings_total = None
+    subject_images_total = None
+    for section in tqdm(sections):
+        ps_index = dataset.get_participant_section_index(participant=participant,section=section)
+        ps = BaseSectionParticipant(dataset[ps_index],embed_type=embed_type)
+        # section = ps.section
+        n_volumes = ps.nr_fmri_frames
+        # TODO: use all volumes
+        # n_volumes = 15 #small for testing purposes
 
-def main():
-    embed_type = 'GloVe'
-    dataset = LPPDataset(embed_type=embed_type)
-    participant = 'sub-EN057'
-    ps = BaseSectionParticipant(dataset[0],embed_type=embed_type)
+        # get words per volume
+        words = [ps.get_words_volume_idx(i) for i in range(n_volumes)]
+        # select indices that contain words
+        indices_vols_with_words = [
+            i for i in range(n_volumes) if words[i] != []
+        ]
 
+        # get images
+        subject_images = ps.fmri[...,indices_vols_with_words].numpy()
 
-    n_volumes = 10
-    # get images
-    subject_images = ps.fmri[...,:n_volumes].numpy()
+        # mask_images
 
-    # get words per volume
-    words = [ps.get_words_volume_idx(i) for i in range(n_volumes)]
-    no_words = [0] + [len(l) for l in words]
-    index_words = np.cumsum(no_words)
+        # mask_volumes
+        subject_images = mask_timeseries(timeseries= subject_images,cortical_mask=cortical_mask)
 
+        # load embeddings
+        # # get embeddings of volumes: calculate mean if multiple words.
+        encodings = np.array([ps.get_mean_embed_volume_idx(i) for i in indices_vols_with_words])
 
-    # load embeddings
-    # embed_type = 'GloVe'
-    df = load_embeddings(embed_type)
-
-
-    # get embeddings of volumes: calculate mean if multiple words.
-    # TODO: make this more neat, by actually extracting word embeeddings correctly
-    # encodings = np.array([df[embed_type].iloc[index_words[i]:index_words[i+1]].mean() for i in range(len(no_words)-1)])
-    encodings = np.array([ps.get_mean_embed_volume_idx(i) for i in range(n_volumes)])
-
+        #concatenate section info to total
+        #encodings
+        if encodings_total is None:
+            encodings_total = encodings
+        else:
+            encodings_total = np.concatenate([encodings_total,encodings], axis = 0)
+        #images
+        if subject_images_total is None:
+            subject_images_total = subject_images
+        else:
+            subject_images_total = np.concatenate([subject_images_total,subject_images])
 
     # Final data prep: normalize.
-    X = subject_images - subject_images.mean(axis=0)
+    X = subject_images_total - subject_images_total.mean(axis=0)
     X = X / np.linalg.norm(X, axis=1, keepdims=True)
-    X = np.nan_to_num(X) #fill na
-    Y = encodings - encodings.mean(axis=0)
+    # X=np.nan_to_num(X) #fill na (not needed now
+    Y = encodings_total - encodings_total.mean(axis=0)
     Y = Y / np.linalg.norm(Y, axis=1, keepdims=True)
 
+    return X,Y
 
 
-    # Assuming X is your fMRI data and Y is your labels
-    X_shape = X.shape
-    Y_shape = Y.shape
+def main():
+    embed_type = 'BERT'
+    dataset = LPPDataset(embed_type=embed_type)
+    participant = 'sub-EN057'
+    sections = [1,2,3,4,5,6,7,9]
+    cortex_regions = ['Olfactory_L']
+    select_all_regions=True
+    # ps = BaseSectionParticipant(dataset[0],embed_type=embed_type)
+    # load mask
+    cortical_mask = get_aal_mask(cortical_regions=cortex_regions,
+                                 select_all_regions=select_all_regions)
+
+    X,Y = load_masked_volumes_embeddings(
+        dataset=dataset,
+        participant=participant,
+        cortical_mask=cortical_mask,
+        embed_type=embed_type,
+        select_all_regions = False,
+        sections=sections
+    )
 
     # Reshape the fMRI data to 2D (flattening the spatial dimensions)
-    X_reshaped = X.reshape((X_shape[0] * X_shape[1] * X_shape[2], X_shape[3])).T
+    if len(X.shape) ==3:
+        X = X.reshape((X.shape[0] * X.shape[1] * X.shape[2], X.shape[3])).T
 
     # DO VOXEL SELECTION
-    #load cortical mask
-    # TODO: only select cortical region: no gray matter + background
-
-    # cortex_region = 'Superior Temporal Gyrus, anterior division'
-    cortex_region = 'Background'
-    voxel_mask = get_oxford_mask(cortical_regions= [cortex_region])
-    voxel_mask = 1- voxel_mask.get_fdata()
-    voxel_mask = voxel_mask.flatten()
-
     # specify meta:
     # TODO: get the surrounding voxel selection to work
     grid_shape = (5, 5, 5)
@@ -200,10 +285,10 @@ def main():
     meta = create_meta((73, 90, 74))
     # kwargs = {'meta':True,'voxel_mask':voxel_mask}
     scores = train_voxelwise_target_prediction_models(
-        examples = X_reshaped,
+        examples = X,
         targets= Y,
-        meta = meta,
-        voxel_mask  = voxel_mask
+        # meta = meta, #for selecting surrounding voxels
+        # voxel_mask  = voxel_mask
     )
 
     # fill nan as 0 in scores
@@ -211,19 +296,42 @@ def main():
 
     # calculate mean score over all dimensions of embeddings for each voxel
     meanscores = scores.mean(axis=0)
+    maxscores = scores.max(axis=0)
 
-    index_highest_voxels = find_top_n_indices(meanscores,n=5000)
+    index_highest_avg_voxels = find_top_n_indices(meanscores,n=5000)
+    index_highest_voxels = find_top_n_indices(maxscores,n=5000)
 
+    mask_selected_voxels = create_mask_from_voxel_selection(
+        voxel_selection_indices = index_highest_voxels,
+        cortical_mask=cortical_mask
+        )
+    mask_avg_selected_voxels = create_mask_from_voxel_selection(
+        voxel_selection_indices=index_highest_avg_voxels,
+        cortical_mask=cortical_mask
+    )
+
+
+    #save mask
+    save_selected_voxel_mask(mask=mask_selected_voxels,
+                             participant=participant,
+                             embed_type=embed_type)
+
+    save_selected_voxel_mask(mask=mask_avg_selected_voxels,
+                             participant=participant,
+                             embed_type=embed_type,
+                             filepath=data_path /'voxel_selection_masks'/'avg'#selects average score over all embeddings per voxel
+                             )
+    print(index_highest_voxels)
     print('end')
 
 
 if __name__ == '__main__':
     main()
 
-boolmask = [True for i in range(meta['voxelsToNeighbours'].shape[0]) if np.count_nonzero(meta['voxelsToNeighbours'][i])==0  ]
-
-boolmask = [np.count_nonzero(meta['voxelsToNeighbours'][i])==0 for i in range(meta['voxelsToNeighbours'].shape[0])]
-arr = meta['voxelsToNeighbours'][np.count_nonzero(meta['voxelsToNeighbours'])==0]
+# boolmask = [True for i in range(meta['voxelsToNeighbours'].shape[0]) if np.count_nonzero(meta['voxelsToNeighbours'][i])==0  ]
+#
+# boolmask = [np.count_nonzero(meta['voxelsToNeighbours'][i])==0 for i in range(meta['voxelsToNeighbours'].shape[0])]
+# arr = meta['voxelsToNeighbours'][np.count_nonzero(meta['voxelsToNeighbours'])==0]
 
 
 
