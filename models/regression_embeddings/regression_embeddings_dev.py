@@ -274,7 +274,6 @@ def run_ridge(
         filename = f"pred_embed_{embed_type}_{participant}_section_{test_sections_str}.pkl"
 
     df.to_pickle(filepath/filename)
-    print('done running ridge for ...')
     return df
 
 def main():

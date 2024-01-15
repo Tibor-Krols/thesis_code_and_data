@@ -160,7 +160,10 @@ def show_mask(mask,title = ''):
     plotting.show()
 
 if __name__ == '__main__':
-    mask = get_aal_mask(['Cerebelum_Crus1_L', 'Cerebelum_Crus1_R'],select_all_regions=True)
+    mask = get_aal_mask(['Precuneus_L', 'Precuneus_R'],select_all_regions=True)
+    mask2 = get_oxford_mask(cortical_regions=['Inferior Frontal Gyrus, pars triangularis', 'Inferior Frontal Gyrus, pars opercularis'])
+    mask1 = get_aal_mask(['Temporal_Sup_L', 'Temporal_Sup_R', 'Temporal_Pole_Sup_L', 'Temporal_Pole_Sup_R', 'Temporal_Mid_L', 'Temporal_Mid_R', 'Temporal_Pole_Mid_L', 'Temporal_Pole_Mid_R', 'Temporal_Inf_L', 'Temporal_Inf_R'])
+
     get_oxford_mask(cortical_regions=[],select_all_regions=True)
     cortical_regions = ['Frontal Pole','Occipital Pole']
     reg_mask = get_oxford_mask(cortical_regions=cortical_regions)
