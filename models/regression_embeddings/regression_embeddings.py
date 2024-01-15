@@ -154,8 +154,6 @@ def main():
     # cortex_regions = None
     # cortex_regions = ['Temporal_Sup_L', 'Temporal_Sup_R']
     # cortex_regions = ['Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L', 'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L', 'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L', 'Cerebelum_10_R']
-    # TODO: optimize alpha on train set, make predictions on test set
-    # TODO: load all volumes
     # 7/9 sections train: 2/9 sections test?
     (X_train,Y_train,
      Y_baseline_train,
@@ -210,7 +208,6 @@ def main():
 
 
     # Fit a Ridge Regression model
-    # TODO: save best alpha somewehre
     alpha = best_alpha  # You can adjust this regularization parameter
     ridge_model = Ridge(alpha=alpha)
     ridge_model.fit(X_train, Y_train)
@@ -240,10 +237,6 @@ def main():
     cosine_similarities_train = np.diagonal(cosine_similarities_train, axis1=0, axis2=1)
     print('pred on traind data',cosine_similarities_train.mean())
 
-    # TODO: save cross validation scores
-    # TODO: save test prediction scores
-
-
     # save predictions and scores
     df = pd.DataFrame({
         'section' : [sec for sec, words in section_words_dict_test.items() for _ in words],
@@ -252,7 +245,8 @@ def main():
         f'pred_{embed_type}_test':Y_pred.tolist(),
         f'baseline_{embed_type}_test':Y_baseline_test.tolist(),
         f'cosine_pred_{embed_type}':cosine_similarity_test,
-        f'cosine_baseline_{embed_type}': cosine_similarities_base
+        f'cosine_baseline_{embed_type}': cosine_similarities_base,
+        'alpha':alpha
     })
     filepath = data_path/'predictions'/embed_type
     os.makedirs(filepath,exist_ok=True)
