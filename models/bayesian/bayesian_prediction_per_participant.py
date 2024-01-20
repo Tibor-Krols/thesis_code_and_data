@@ -23,8 +23,8 @@ def main():
     participant_indices = dataset.get_participant_samples_indices(participant)
     train_indices = participant_indices[:8]
     # test_indices = [participant_indices[-1]]
-    # test_indices = [participant_indices[7]] #select section 8
-    test_indices = [ participant_indices[0]] #use already 'seen' section to test if overfitting
+    test_indices = [participant_indices[7]] #select section 8
+    # test_indices = [ participant_indices[0]] #use already 'seen' section to test if overfitting
     ps_idx = test_indices[0]
     ps = BaseSectionParticipant(dataset[ps_idx], include_volume_words_dict=True)
     avg_fmri_word_dict = load_averages_participant(participant)
@@ -41,7 +41,7 @@ def main():
     cortical_mask = get_oxford_mask(cortical_regions= cortical_regions)
     #mask avg fmri images if mas provided:
     # compute masked images (if needed)
-    # masked_avg_fmri_word_dict = mask_avg_fmri_word_dict(avg_fmri_word_dict,cortical_mask)
+    masked_avg_fmri_word_dict = mask_avg_fmri_word_dict(avg_fmri_word_dict,cortical_mask)
     # load masked images #TODO: load if present, compute if not
     masked_avg_fmri_word_dict = load_averages_participant(participant,cortical_regions=cortical_regions)
     # run predictions bayesian fmri

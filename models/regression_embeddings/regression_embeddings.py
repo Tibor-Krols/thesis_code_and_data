@@ -15,7 +15,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 from models.regression_embeddings.voxel_selection.voxel_selection_text import load_selected_voxel_mask
-from utils.cortical_masking import mask_timeseries, get_aal_mask,get_oxford_mask
+from utils.cortical_masking import mask_timeseries, get_aal_mask, get_oxford_mask, show_mask, load_mask_both_atlasses
 from utils.paths import *
 
 def convert_to_array(s):
@@ -44,6 +44,8 @@ def get_section_baseline_encodings(section:int,data:pd.DataFrame,indices_vols_wi
     df_sect = df_sect.iloc[indices_vols_with_words]
     return np.array(df_sect[embed_type].to_list())
 
+
+
 def check_atlas_type(cortical_regions)->str:
     # TODO: remove hardcoding and load labels
     # currently hardcoded to speed up runs and not load labels every time
@@ -51,7 +53,9 @@ def check_atlas_type(cortical_regions)->str:
     labels_aal = ['Precentral_L', 'Precentral_R', 'Frontal_Sup_L', 'Frontal_Sup_R', 'Frontal_Sup_Orb_L', 'Frontal_Sup_Orb_R', 'Frontal_Mid_L', 'Frontal_Mid_R', 'Frontal_Mid_Orb_L', 'Frontal_Mid_Orb_R', 'Frontal_Inf_Oper_L', 'Frontal_Inf_Oper_R', 'Frontal_Inf_Tri_L', 'Frontal_Inf_Tri_R', 'Frontal_Inf_Orb_L', 'Frontal_Inf_Orb_R', 'Rolandic_Oper_L', 'Rolandic_Oper_R', 'Supp_Motor_Area_L', 'Supp_Motor_Area_R', 'Olfactory_L', 'Olfactory_R', 'Frontal_Sup_Medial_L', 'Frontal_Sup_Medial_R', 'Frontal_Med_Orb_L', 'Frontal_Med_Orb_R', 'Rectus_L', 'Rectus_R', 'Insula_L', 'Insula_R', 'Cingulum_Ant_L', 'Cingulum_Ant_R', 'Cingulum_Mid_L', 'Cingulum_Mid_R', 'Cingulum_Post_L', 'Cingulum_Post_R', 'Hippocampus_L', 'Hippocampus_R', 'ParaHippocampal_L', 'ParaHippocampal_R', 'Amygdala_L', 'Amygdala_R', 'Calcarine_L', 'Calcarine_R', 'Cuneus_L', 'Cuneus_R', 'Lingual_L', 'Lingual_R', 'Occipital_Sup_L', 'Occipital_Sup_R', 'Occipital_Mid_L', 'Occipital_Mid_R', 'Occipital_Inf_L', 'Occipital_Inf_R', 'Fusiform_L', 'Fusiform_R', 'Postcentral_L', 'Postcentral_R', 'Parietal_Sup_L', 'Parietal_Sup_R', 'Parietal_Inf_L', 'Parietal_Inf_R', 'SupraMarginal_L', 'SupraMarginal_R', 'Angular_L', 'Angular_R', 'Precuneus_L', 'Precuneus_R', 'Paracentral_Lobule_L', 'Paracentral_Lobule_R', 'Caudate_L', 'Caudate_R', 'Putamen_L', 'Putamen_R', 'Pallidum_L', 'Pallidum_R', 'Thalamus_L', 'Thalamus_R', 'Heschl_L', 'Heschl_R', 'Temporal_Sup_L', 'Temporal_Sup_R', 'Temporal_Pole_Sup_L', 'Temporal_Pole_Sup_R', 'Temporal_Mid_L', 'Temporal_Mid_R', 'Temporal_Pole_Mid_L', 'Temporal_Pole_Mid_R', 'Temporal_Inf_L', 'Temporal_Inf_R', 'Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L', 'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L', 'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L', 'Cerebelum_10_R', 'Vermis_1_2', 'Vermis_3', 'Vermis_4_5', 'Vermis_6', 'Vermis_7', 'Vermis_8', 'Vermis_9', 'Vermis_10']
     harvard_oxford = set(cortical_regions) & set(labels_harvard_oxford)
     aal = set(cortical_regions) & set(labels_aal)
-    if len(harvard_oxford):
+    if len(harvard_oxford)>0 and len(aal)>0:
+        return 'both'
+    elif len(harvard_oxford):
         return 'harvard_oxford'
     elif len(aal):
         return 'aal'
@@ -77,10 +81,13 @@ def load_volumes_embeddings_baseline(
         # use regions if specified
         # load from relevant atlas
         atlas_type = check_atlas_type(cortex_regions)
-        if atlas_type == 'harvard_oxford':
+        if atlas_type == 'both':
+            cortical_mask = load_mask_both_atlasses(cortical_regions=cortex_regions)
+        elif atlas_type == 'harvard_oxford':
             cortical_mask = get_oxford_mask(cortical_regions=cortex_regions)
         elif atlas_type == 'aal':
             cortical_mask = get_aal_mask(cortical_regions=cortex_regions)
+
     else:
         # otherwise use selected voxels
         # load informative voxel mask (like pereira et al.(2018))
@@ -163,6 +170,57 @@ def load_volumes_embeddings_baseline(
 
     return X,Y,baseline_total,section_words_dict,section_volume_idx_dict
 
+def update_overall_scores_file(df_run,participant,embed_type,cortex_regions,train_sections,test_sections):
+    filepath = data_path/'predictions'/'overall'
+    filename = 'overview_predictions.csv'
+    file = filepath/filename
+
+
+    # Check if the file exists
+    if file.exists():
+        # Load the existing DataFrame from the CSV file
+        df = pd.read_csv(file)
+
+        # Create a new DataFrame with the provided data
+        new_row = pd.DataFrame(
+            [{
+                'participant': participant,
+                'embed_type': embed_type,
+                'cosine_similarity': df_run[f'cosine_pred_{embed_type}'].mean(),
+                'cosine_similarity_std': df_run[f'cosine_pred_{embed_type}'].std(),
+                'train_sections': str(train_sections),
+                'test_sections': str(test_sections),
+                'cortex_regions': '_'.join(cortex_regions),
+
+            }]
+        )
+
+        # Append the new row to the existing DataFrame
+        df = pd.concat([df, new_row], ignore_index=True)
+        # Save the updated DataFrame back to the CSV file
+        df.to_csv(file, index=False)
+    else:
+        os.makedirs(filepath, exist_ok=True)
+        # If the file doesn't exist, create a new DataFrame with the provided data
+        df = pd.DataFrame(
+            [{
+                'participant':participant,
+                'embed_type': embed_type,
+                'cosine_similarity': df_run[f'cosine_pred_{embed_type}'].mean(),
+                'cosine_similarity_std':df_run[f'cosine_pred_{embed_type}'].std(),
+                'train_sections': str(train_sections),
+                'test_sections': str(test_sections),
+                'cortex_regions': '_'.join(cortex_regions),
+
+            }]
+        )
+        # Save the DataFrame to the CSV file
+        df.to_csv(file, index=False)
+    return df
+def run_ridge_GloVe_BERT(
+
+):
+    pass
 def run_ridge(
         embed_type:str,
         dataset,
@@ -268,32 +326,85 @@ def run_ridge(
     os.makedirs(filepath,exist_ok=True)
     test_sections_str = '_'.join([str(s) for s in test_sections])
     if cortex_regions is not None:
-        region_names = '_'.join(cortex_regions)
+        region_names = '_'.join(cortex_regions[:-6])
+        if len(region_names)>150:
+            region_names = cortex_regions[0] + '_and_more'
         filename = f"pred_embed_{embed_type}_{participant}_section_{test_sections_str}_{region_names}.pkl"
     else:
         filename = f"pred_embed_{embed_type}_{participant}_section_{test_sections_str}.pkl"
+    print(f'{participant} ,   {region_names} ,   {cosine_similarity_test.mean()}  ,  {embed_type}')
 
     df.to_pickle(filepath/filename)
-    print('done running ridge for ...')
+
+    print(f'done running ridge for {cortex_regions}')
+    df_overall = update_overall_scores_file(
+        df_run=df,
+        participant=participant,
+        embed_type=embed_type,
+        cortex_regions=cortex_regions,
+        train_sections=train_sections,
+        test_sections=test_sections)
     return df
 
+
+
 def main():
-    embed_type = 'GloVe'
-    dataset = LPPDataset(embed_type=embed_type)
-    participant = 'sub-EN057'
+    embed_types = ['GloVe','BERT']
+    # embed_types = ['BERT']
+    # embed_type = 'BERT'
+    participant = 'sub-EN092'
     train_sections = [1,2,3,4,5,6,7,9]
     test_sections = [8]
-    cortex_regions = ['Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L', 'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L', 'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L', 'Cerebelum_10_R']
-    # 7/9 sections train: 2/9 sections test?
-    df_results = run_ridge(
-        embed_type=embed_type,
-        dataset=dataset,
-        participant=participant,
-        train_sections=train_sections,
-        test_sections=test_sections,
-        cortex_regions=cortex_regions
-    )
 
+    # combined regions
+    cortex_regions_list = [
+        [
+            'Angular Gyrus',
+            'Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L',
+            'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L',
+            'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L',
+            'Cerebelum_10_R',
+            'Inferior Frontal Gyrus, pars triangularis', 'Inferior Frontal Gyrus, pars opercularis',
+            'Superior Temporal Gyrus, anterior division', 'Superior Temporal Gyrus, posterior division',
+            'Temporal_Sup_L', 'Temporal_Pole_Sup_L', 'Temporal_Mid_L', 'Temporal_Pole_Mid_L', 'Temporal_Inf_L',
+            'Temporal_Sup_R', 'Temporal_Pole_Sup_R', 'Temporal_Mid_R', 'Temporal_Pole_Mid_R', 'Temporal_Inf_R'
+         ]
+    ]
+
+
+    # cortex_regions_list = [
+    #     # ['Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L', 'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L', 'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L', 'Cerebelum_10_R'],
+    #     # ['Angular Gontal Gyrus, pars triangularis', 'Inferior Frontal Gyrus, pars opercularis'],
+    #     # ['Superior Tempyrus'],
+    #     # ['Superior Temporal Gyrus, anterior division', 'Superior Temporal Gyrus, posterior division']
+    #     ['Precuneous Cortex','Cerebelum_Crus1_L','Superior Temporal Gyrus, anterior division', 'Superior Temporal Gyrus, posterior division']
+    #
+    # ]
+    # temporal_masks = ['Temporal_Sup_L', 'Temporal_Sup_R', 'Temporal_Pole_Sup_L', 'Temporal_Pole_Sup_R', 'Temporal_Mid_L', 'Temporal_Mid_R', 'Temporal_Pole_Mid_L', 'Temporal_Pole_Mid_R', 'Temporal_Inf_L', 'Temporal_Inf_R']
+    # temporal_L = [m for m in temporal_masks if '_L' in m]
+    # temporal_R = [m for m in temporal_masks if '_R' in m]
+    # cortex_regions_list = [
+    #     temporal_L,
+    #     temporal_R
+    # ]
+    # cortex_regions = ['Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L', 'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L', 'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L', 'Cerebelum_10_R']
+    # cortex_regions = ['Angular Gyrus']
+    # cortex_regions = ['Precuneous Cortex']
+    # cortex_regions_list = [['Olfactory_L', 'Olfactory_R']]
+    # cortex_regions = ['Inferior Frontal Gyrus, pars triangularis', 'Inferior Frontal Gyrus, pars opercularis']
+    # cortex_regions = ['Superior Temporal Gyrus, anterior division', 'Superior Temporal Gyrus, posterior division']
+    # 7/9 sections train: 2/9 sections test?
+    for cortex_regions in cortex_regions_list:
+        for embed_type in embed_types:
+            dataset = LPPDataset(embed_type=embed_type)
+            df_results = run_ridge(
+                embed_type=embed_type,
+                dataset=dataset,
+                participant=participant,
+                train_sections=train_sections,
+                test_sections=test_sections,
+                cortex_regions=cortex_regions
+        )
     print('end')
 
 
