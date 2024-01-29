@@ -1,5 +1,5 @@
 import os
-
+import random
 import pandas as pd
 # import torch
 from sklearn.model_selection import KFold, GridSearchCV, cross_val_predict
@@ -59,6 +59,12 @@ def check_atlas_type(cortical_regions)->str:
         return 'harvard_oxford'
     elif len(aal):
         return 'aal'
+
+
+def sample_participants(participants:list[str], n:int = 20)->list[str]:
+    random.seed(42)
+    return random.sample(participants,n)
+
 
 def load_volumes_embeddings_baseline(
         dataset:LPPDataset,
@@ -336,7 +342,7 @@ def run_ridge(
 
     df.to_pickle(filepath/filename)
 
-    print(f'done running ridge for {cortex_regions}')
+    print(f'done running ridge for {participant} {cortex_regions}')
     df_overall = update_overall_scores_file(
         df_run=df,
         participant=participant,
@@ -346,17 +352,17 @@ def run_ridge(
         test_sections=test_sections)
     return df
 
-
-
-def main():
-    embed_types = ['GloVe','BERT']
-    # embed_types = ['BERT']
-    # embed_type = 'BERT'
-    participant = 'sub-EN092'
-    train_sections = [1,2,3,4,5,6,7,9]
+def run_above_baseline_regions():
+    train_sections = [1, 2, 3, 4, 5, 6, 7, 9]
     test_sections = [8]
-
-    # combined regions
+    # sample participants
+    dataset = LPPDataset()
+    participants = sample_participants(dataset.participants, n=25)
+    # participants = participants[-1:]
+    # participants = ['sub-EN100']
+    # combined regions for bert
+    embed_types = ['BERT']
+    # Regions for bert
     cortex_regions_list = [
         [
             'Angular Gyrus',
@@ -364,13 +370,91 @@ def main():
             'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L',
             'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L',
             'Cerebelum_10_R',
-            'Inferior Frontal Gyrus, pars triangularis', 'Inferior Frontal Gyrus, pars opercularis',
             'Superior Temporal Gyrus, anterior division', 'Superior Temporal Gyrus, posterior division',
             'Temporal_Sup_L', 'Temporal_Pole_Sup_L', 'Temporal_Mid_L', 'Temporal_Pole_Mid_L', 'Temporal_Inf_L',
             'Temporal_Sup_R', 'Temporal_Pole_Sup_R', 'Temporal_Mid_R', 'Temporal_Pole_Mid_R', 'Temporal_Inf_R'
-         ]
+        ]
     ]
+    for participant in participants:
+        for cortex_regions in cortex_regions_list:
+            for embed_type in embed_types:
+                dataset = LPPDataset(embed_type=embed_type)
+                df_results = run_ridge(
+                    embed_type=embed_type,
+                    dataset=dataset,
+                    participant=participant,
+                    train_sections=train_sections,
+                    test_sections=test_sections,
+                    cortex_regions=cortex_regions
+            )
 
+
+    # combined regions for GloVe
+    embed_types = ['GloVe']
+    # participants = ['sub-EN110', 'sub-EN114', 'sub-EN062', 'sub-EN076']
+    cortex_regions_list = [
+        [
+            'Angular Gyrus',
+            'Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L',
+            'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L',
+            'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L',
+            'Cerebelum_10_R',
+            'Superior Temporal Gyrus, anterior division', 'Superior Temporal Gyrus, posterior division',
+            'Temporal_Sup_R', 'Temporal_Pole_Sup_R', 'Temporal_Mid_R', 'Temporal_Pole_Mid_R', 'Temporal_Inf_R'
+        ]
+    ]
+    for participant in participants:
+        for cortex_regions in cortex_regions_list:
+            for embed_type in embed_types:
+                dataset = LPPDataset(embed_type=embed_type)
+                df_results = run_ridge(
+                    embed_type=embed_type,
+                    dataset=dataset,
+                    participant=participant,
+                    train_sections=train_sections,
+                    test_sections=test_sections,
+                    cortex_regions=cortex_regions
+            )
+
+def main():
+    # run_above_baseline_regions()
+    embed_types = ['GloVe','BERT']
+    # embed_types = ['BERT']
+    # embed_type = 'BERT'
+    participants = ['sub-EN058']
+    train_sections = [1,2,3,4,5,6,7,9]
+    test_sections = [8]
+    # sample participants
+    dataset = LPPDataset()
+    # participants = sample_participants(dataset.participants, n=25)
+
+    # combined regions
+    # cortex_regions_list = [
+    #     [
+    #         'Angular Gyrus',
+    #         'Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L',
+    #         'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L',
+    #         'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L',
+    #         'Cerebelum_10_R',
+    #         'Inferior Frontal Gyrus, pars triangularis', 'Inferior Frontal Gyrus, pars opercularis',
+    #         'Superior Temporal Gyrus, anterior division', 'Superior Temporal Gyrus, posterior division',
+    #         'Temporal_Sup_L', 'Temporal_Pole_Sup_L', 'Temporal_Mid_L', 'Temporal_Pole_Mid_L', 'Temporal_Inf_L',
+    #         'Temporal_Sup_R', 'Temporal_Pole_Sup_R', 'Temporal_Mid_R', 'Temporal_Pole_Mid_R', 'Temporal_Inf_R'
+    #      ]
+    # ]
+    cortex_regions_list = [['Precuneous Cortex']]
+    for participant in participants:
+        for cortex_regions in cortex_regions_list:
+            for embed_type in embed_types:
+                dataset = LPPDataset(embed_type=embed_type)
+                df_results = run_ridge(
+                    embed_type=embed_type,
+                    dataset=dataset,
+                    participant=participant,
+                    train_sections=train_sections,
+                    test_sections=test_sections,
+                    cortex_regions=cortex_regions
+            )
 
     # cortex_regions_list = [
     #     # ['Cerebelum_Crus1_L', 'Cerebelum_Crus1_R', 'Cerebelum_Crus2_L', 'Cerebelum_Crus2_R', 'Cerebelum_3_L', 'Cerebelum_3_R', 'Cerebelum_4_5_L', 'Cerebelum_4_5_R', 'Cerebelum_6_L', 'Cerebelum_6_R', 'Cerebelum_7b_L', 'Cerebelum_7b_R', 'Cerebelum_8_L', 'Cerebelum_8_R', 'Cerebelum_9_L', 'Cerebelum_9_R', 'Cerebelum_10_L', 'Cerebelum_10_R'],
@@ -394,17 +478,18 @@ def main():
     # cortex_regions = ['Inferior Frontal Gyrus, pars triangularis', 'Inferior Frontal Gyrus, pars opercularis']
     # cortex_regions = ['Superior Temporal Gyrus, anterior division', 'Superior Temporal Gyrus, posterior division']
     # 7/9 sections train: 2/9 sections test?
-    for cortex_regions in cortex_regions_list:
-        for embed_type in embed_types:
-            dataset = LPPDataset(embed_type=embed_type)
-            df_results = run_ridge(
-                embed_type=embed_type,
-                dataset=dataset,
-                participant=participant,
-                train_sections=train_sections,
-                test_sections=test_sections,
-                cortex_regions=cortex_regions
-        )
+    for participant in participants[:10]:
+        for cortex_regions in cortex_regions_list:
+            for embed_type in embed_types:
+                dataset = LPPDataset(embed_type=embed_type)
+                df_results = run_ridge(
+                    embed_type=embed_type,
+                    dataset=dataset,
+                    participant=participant,
+                    train_sections=train_sections,
+                    test_sections=test_sections,
+                    cortex_regions=cortex_regions
+            )
     print('end')
 
 

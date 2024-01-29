@@ -188,7 +188,16 @@ def main():
     # train_indices,test_indices,validation_indices = train_test_validation_split(dataset=dataset)
     # train_indices1,test_indices1,validation_indices1 = train_test_validation_split_percentage(dataset=dataset)
     # use if need train test split (can be used iteratively to create validation fold)
+
     train_indices,test_indices = train_test_split_lpp(dataset)
+
+    # train_indices,test_indices = train_test_split_lpp(
+    #     dataset,
+    #     Ntrain_participants=5,
+    #     Ntrain_sections=8,
+    #     Ntest_participants=5,
+    #     Ntest_sections=1,
+    # )
     print('end')
 if __name__ == '__main__':
     main()
