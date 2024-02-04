@@ -2,6 +2,7 @@ from dataset_loader.dataset import LPPDataset
 from preprocessing.audio.extract_timestamps_words_audio import extract_sentences
 from training.train_test_split import train_test_split_lpp
 from dataset_loader.section_participant_base import BaseSectionParticipant
+from utils.cortical_masking import load_cortical_atlas_flexible
 from utils.paths import *
 from torch import save,load
 from tqdm import tqdm
@@ -58,7 +59,7 @@ def calculate_std(dataset,indices_participant_sections,cortical_region:str,parti
 
     # load cortical mask
     # cortical_mask =
-    cortical_mask = get_oxford_mask(cortical_regions= [cortical_region])
+    cortical_mask = load_cortical_atlas_flexible(cortical_regions= [cortical_region])
 
     # indices_participant_sections = indices_participant_sections[:18]
     # make sum and count per word

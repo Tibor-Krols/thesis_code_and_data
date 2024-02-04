@@ -6,7 +6,7 @@ from scipy.linalg import block_diag
 
 from dataset_loader.dataset import LPPDataset
 from dataset_loader.section_participant_base import BaseSectionParticipant
-from utils.cortical_masking import get_oxford_mask, get_aal_mask, mask_timeseries
+from utils.cortical_masking import get_aal_mask, mask_timeseries
 from utils.embeddings import load_embeddings
 import collections
 import nibabel as nib

@@ -8,7 +8,8 @@ from nilearn.image import resample_img
 import nibabel as nib
 
 from models.bayesian.fmri_averages_per_participant import load_averages_participant
-from utils.cortical_masking import make_nifti_image_from_tensor, get_oxford_mask, resample_mask
+from utils.cortical_masking import make_nifti_image_from_tensor, get_oxford_mask, resample_mask, \
+    load_cortical_atlas_flexible
 
 
 def plot_timeseries(ps,nvolumes = 10):
@@ -86,7 +87,7 @@ def main():
     # ps = BaseSectionParticipant(dataset[12],return_nii=True)
     # ps2 = BaseSectionParticipant(dataset[22],return_nii=True)
     cortex_region = 'Superior Temporal Gyrus, anterior division'
-    cortical_mask = get_oxford_mask(cortical_regions= [cortex_region])
+    cortical_mask = load_cortical_atlas_flexible(cortical_regions= [cortex_region])
 
     word1 = 'drawings'
     word2 = 'silence'
@@ -131,7 +132,7 @@ def main():
     cortex_correlation = {}
     for cor_reg in cortical_regions:
         # get mask for cortical region
-        cortical_mask = get_oxford_mask(cortical_regions= [cor_reg])
+        cortical_mask = load_cortical_atlas_flexible(cortical_regions= [cor_reg])
 
         #mask volume
         # reshape mask

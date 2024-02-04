@@ -88,7 +88,7 @@ def analyze_combined_regions():
     })
     dfglove = dfglove.rename(columns = {
         'cosine_similarity':'cos sim glove',
-        'cosine_similarity_std':'cos sim glove'
+        'cosine_similarity_std':'std cos sim glove'
     })
     # print(dfbert.to_latex(index=False))
     dfnew = pd.merge(dfglove,dfbert, on='participant')

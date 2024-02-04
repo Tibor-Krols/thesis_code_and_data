@@ -62,7 +62,7 @@ def analyze_two_participants():
     })
     dfglove = dfglove.rename(columns = {
         'cosine_similarity':'cos sim glove',
-        'cosine_similarity_std':'cos sim glove'
+        'cosine_similarity_std':'std cos sim glove'
     })
     dfnew = pd.merge(dfglove,dfbert, on=['participant','cortex_regions'])
     dfnew = dfnew.drop_duplicates()

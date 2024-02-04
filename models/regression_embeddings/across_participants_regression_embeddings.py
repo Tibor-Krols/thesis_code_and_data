@@ -14,10 +14,11 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
-from models.regression_embeddings.regression_embeddings import check_atlas_type, get_word_avg_baseline_encodings, \
+from models.regression_embeddings.regression_embeddings import get_word_avg_baseline_encodings, \
     load_baseline_word_embeddings
 from models.regression_embeddings.voxel_selection.voxel_selection_text import load_selected_voxel_mask
-from utils.cortical_masking import mask_timeseries, get_aal_mask, get_oxford_mask, show_mask, load_mask_both_atlasses
+from utils.cortical_masking import mask_timeseries, get_aal_mask, get_oxford_mask, show_mask, load_mask_both_atlasses, \
+    check_atlas_type
 from sklearn.model_selection import GridSearchCV
 from tqdm import tqdm
 from dataset_loader.dataset import LPPDataset
@@ -76,7 +77,7 @@ def load_volumes_embeddings_multiple_participants(
             # section = ps.section
             n_volumes = ps.nr_fmri_frames
             # TODO: use all volumes
-            n_volumes = 5 #small for testing purposes
+            # n_volumes = 5 #small for testing purposes
 
             # get words per volume
             words = [ps.get_words_volume_idx(i) for i in range(n_volumes)]
@@ -292,9 +293,13 @@ def run_ridge_across_participants(
 
     # save predictions and scores
     # nr of volumes
+    nr_of_test_volumes = sum([len(l) for l in section_volume_idx_dict_test.values()])
     nr_of_test_volumes = len(section_volume_idx_dict_test[test_sections[0]])
     df = pd.DataFrame({
-        'participant':[p for p in test_participants for i in range(nr_of_test_volumes*nr_test_sections)],
+        'participant':[p for p in test_participants
+                       for nr_of_test_volumes in [len(l) for l in section_volume_idx_dict_test.values()]
+                       for i in range(nr_of_test_volumes)
+                       ],
         'section': [sec for sec, words in section_words_dict_test.items() for _ in words] * nr_test_participants,
         f'volume_words': [w for words in section_words_dict_test.values() for w in words] * nr_test_participants,
         'volume_idx': [i for indices in section_volume_idx_dict_test.values() for i in indices] * nr_test_participants,
@@ -310,23 +315,23 @@ def run_ridge_across_participants(
     df['unseen_section'] = [p not in train_sections for p in df.section]
     df['fully_unseen'] = df['unseen_participant'] & df['unseen_section']
 
-    # TODO: save file
+    # save file
     train_participants_string = '_'.join(train_participants)
     train_sections_string = '_'.join([str(s) for s in train_sections])
     filepath = data_path/'predictions'/'across_participants'/embed_type/f'train_participants_{train_participants_string}_train_sections_{train_sections_string}'
     os.makedirs(filepath,exist_ok=True)
 
 
-    # TODO: specify good filename and folder
+    #specify filename and folder
     test_sections_str = '_'.join([str(s) for s in test_sections])
     test_participants_str = '_'.join(test_participants)
     if cortex_regions is not None:
         region_names = '_'.join(cortex_regions[:-6])
         if len(region_names)>150:
             region_names = cortex_regions[0] + '_and_more'
-        filename = f"pred_embed_{embed_type}_test_participants_{test_participants_str}_test_sections_{test_sections_str}_{region_names}.pkl"
+        filename = f"pred_embed_{embed_type}_test_{test_participants_str}_test_sections_{test_sections_str}_{region_names}.pkl"
     else:
-        filename = f"pred_embed_{embed_type}_test_participants_{test_participants_str}_test_sections_{test_sections_str}.pkl"
+        filename = f"pred_embed_{embed_type}_test_{test_participants_str}_test_sections_{test_sections_str}.pkl"
 
 
     df.to_pickle(filepath/filename)
@@ -339,7 +344,7 @@ def run_between_participants_both_embeddings():
 
     # TODO: specify good train and test participants and sections
     train_participants = ['sub-EN077', 'sub-EN069', 'sub-EN099', 'sub-EN086', 'sub-EN104']
-    train_sections = [1,3,5,7]
+    train_sections = [1,3,5,8]
     test_participants = ['sub-EN086', 'sub-EN104', 'sub-EN101', 'sub-EN106']
     test_sections = [2,8]
 

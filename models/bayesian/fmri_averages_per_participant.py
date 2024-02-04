@@ -11,6 +11,13 @@ from models.bayesian.calculate_fmri_averages import calculate_averages
 def calculate_averages_participant(dataset,indices_participant_sections,participant):
     calculate_averages(dataset,indices_participant_sections=indices_participant_sections,participant=participant)
 
+
+def save_averages_participant(avg_dict,participant:str,folderpath=data_path / 'word_averages_participants',cortical_regions = None):
+    region_names = '_'.join(cortical_regions)
+    if len(region_names) > 150:
+        region_names = cortical_regions[0] + '_and_more'
+    filename = f'{participant}_word_averages_fmri_dict_masked_{region_names}.pt'
+    save(avg_dict, folderpath/filename)
 def load_averages_participant(participant:str,folderpath = data_path / 'word_averages_participants',cortical_regions =None):
     """
     example filename 'word_averages_fmri_dict_EN-sub57.pt'
@@ -19,8 +26,10 @@ def load_averages_participant(participant:str,folderpath = data_path / 'word_ave
     :return:
     """
     if cortical_regions is not None:
-        area_names = '_'.join(cortical_regions)
-        filename = f'{participant}_word_averages_fmri_dict_masked_{area_names}.pt'
+        region_names = '_'.join(cortical_regions)
+        if len(region_names) > 150:
+            region_names = cortical_regions[0] + '_and_more'
+        filename = f'{participant}_word_averages_fmri_dict_masked_{region_names}.pt'
 
     else:
         filename = f'{participant}_word_averages_fmri_dict.pt'
@@ -29,7 +38,7 @@ def load_averages_participant(participant:str,folderpath = data_path / 'word_ave
 
 def main():
     dataset = LPPDataset()
-    participant = 'sub-EN057'
+    participant = 'sub-EN058'
     participant_indices = dataset.get_participant_samples_indices(participant)
     # train_indices, test_indices, participants_dict, sections_dict = train_test_split_lpp(
     #     dataset,

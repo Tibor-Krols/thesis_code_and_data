@@ -84,6 +84,13 @@ def get_prior_dict_trainset():
 
 
 def calculate_posterior_ps_volume(prior_dict, likelihood_dict):
+    # bit of a hack. but only keep shard vocabulary
+    # Find intersection of keys
+    shared_vocab = set(prior_dict.keys()).intersection(likelihood_dict.keys())
+    # Create new dictionaries with only the shared keys
+    prior_dict = {key: prior_dict[key] for key in shared_vocab}
+    likelihood_dict = {key: likelihood_dict[key] for key in shared_vocab}
+
     assert len(prior_dict) == len(likelihood_dict)
     vocab = list(prior_dict.keys())
     prior_values = torch.tensor(list(prior_dict.values()))
@@ -101,7 +108,7 @@ def predict_words_posterior(posterior_dict, nwords:int)->str:
         word_probabilities=posterior_dict,
         n=nwords
         ,
-        fixed_random_state=True
+        fixed_random_state=False
     )
     # pred_words = generate_text_most_probable(
     #     word_probabilities=posterior_dict,
@@ -130,7 +137,7 @@ def predict_words_ps_volume(avg_fmri_word_dict,ps,vol_idx,prior_dict,similarity_
     )
     # ground_truth_volume
     # print(posterior_dict)
-    print(likelihood_dict_ps_volume)
+    # print(likelihood_dict_ps_volume)
     ground_truth_vol = ps.get_words_volume_idx(vol_idx)
     nwords_volume = len(ground_truth_vol)
     # word generation
@@ -147,8 +154,8 @@ def run_predictions_participant_section(ps,prior_dict,avg_fmri_word_dict,similar
     ground_truths = []
     volume_indices = []
     # loop over all volumes in participant section
-    # for vol_idx in tqdm(range(ps.nr_fmri_frames)):
-    for vol_idx in tqdm(range(5)): #for testing a smaller subset
+    for vol_idx in tqdm(range(ps.nr_fmri_frames)):
+    # for vol_idx in tqdm(range(5)): #for testing a smaller subset
         # make prediction
         gt_vol, pred_vol = predict_words_ps_volume(
             avg_fmri_word_dict,

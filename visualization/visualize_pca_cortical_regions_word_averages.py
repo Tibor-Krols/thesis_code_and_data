@@ -3,14 +3,12 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
 from models.bayesian.fmri_averages_per_participant import load_averages_participant
-from utils.cortical_masking import get_oxford_mask, mask_avg_fmri_word_dict
-
-
+from utils.cortical_masking import get_oxford_mask, mask_avg_fmri_word_dict, load_cortical_atlas_flexible
 
 participant = 'sub-EN057'
 avg_fmri_word_dict = load_averages_participant(participant)
 cortical_regions = ['Superior Temporal Gyrus, anterior division']
-cortical_mask = get_oxford_mask(cortical_regions=cortical_regions)
+cortical_mask = load_cortical_atlas_flexible(cortical_regions=cortical_regions)
 # mask avg fmri images if mas provided:
 masked_avg_fmri_word_dict = mask_avg_fmri_word_dict(avg_fmri_word_dict, cortical_mask)
 
