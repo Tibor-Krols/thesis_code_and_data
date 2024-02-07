@@ -142,7 +142,6 @@ def main():
     flattened_list = [item for sublist in bert_regions for item in sublist]
 
     bert_regions = [b for bl in bert_regions for b in bl]
-    flattened_list = [item for sublist in array_of_lists for item in sublist]
 
     # select intersection of regions above baseline
 

@@ -84,10 +84,10 @@ def create_results_df(
 
 
     # assign seen and unseen
-    df['unseen_participant'] = [p not in train_participants and s in train_sections for p,s in zip(df.participant,df.section)]
-    df['unseen_section'] = [p in train_participants and s not in train_sections for p,s in zip(df.participant,df.section)]
-    df['fully_unseen'] = [p not in train_participants and s not in train_sections for p,s in zip(df.participant,df.section)]
-    df['fully_seen'] = [p in train_participants and s  in train_sections for p,s in zip(df.participant,df.section)]
+    df['unseen_participant'] = [(p not in train_participants) and (s in train_sections) for p,s in zip(df.participant,df.section)]
+    df['unseen_section'] = [(p in train_participants) and (s not in train_sections) for p,s in zip(df.participant,df.section)]
+    df['fully_unseen'] = [(p not in train_participants) and (s not in train_sections) for p,s in zip(df.participant,df.section)]
+    df['fully_seen'] = [(p in train_participants) and (s in train_sections) for p,s in zip(df.participant,df.section)]
 
 
     columns = ['unseen_participant','unseen_section','fully_unseen','fully_seen']
@@ -131,7 +131,6 @@ def create_results_df(
 
 
 
-    pass
 
 if __name__ == '__main__':
     main()
