@@ -7,6 +7,22 @@ def analyze_baseline():
     dfglove = pd.read_csv(r'C:\Users\tibor\Documents\thesis\code_and_data\predictions\baseline\embeddings\baseline_predictions_per_volume_full_text.csv')
     dfglove = pd.read_pickle(r'F:\dataset\predictions\BERT\pred_embed_BERT_sub-EN057_section_8.pkl')
 
+
+def add_average_2_participants(df):
+    # Calculate mean cosine similarity and mean cosine similarity std over 2 participants
+    mean_cosine_similarity = df.groupby('cortex_regions')['cosine_similarity'].mean()
+    mean_cosine_similarity_std = df.groupby('cortex_regions')['cosine_similarity_std'].mean()
+
+    # Create new DataFrame with average values
+    new_data = pd.DataFrame({
+        'participant': ['Average'] * 7,
+        'cortex_regions': mean_cosine_similarity.index,
+        'cosine_similarity': mean_cosine_similarity.values,
+        'cosine_similarity_std': mean_cosine_similarity_std.values
+    })
+    df = pd.concat([df,new_data])
+    df = df.round(decimals=6)
+    return df
 def analyze_two_participants():
     df = pd.read_csv(r'F:\dataset\predictions\overall\overview_predictions.csv')
     df = df[df['participant'].isin(['sub-EN057','sub-EN058'])]
@@ -38,12 +54,20 @@ def analyze_two_participants():
     dfglove = df[df.embed_type=='GloVe']
 
     #sort by participants and cortex
-    dfbert = dfbert.sort_values(by=['participant','cortex_regions'])
-    dfglove = dfglove.sort_values(by=['participant','cortex_regions'])
+    dfbert = dfbert.sort_values(by=['participant','cortex_regions'],ignore_index=True)
+    dfglove = dfglove.sort_values(by=['participant','cortex_regions'],ignore_index=True)
+
+
+    # add average over 2 participants
+    # dfavg = dfglove.groupby(by=['cortex_regions'])['cosine_similarity'].mean()
+    dfglove = add_average_2_participants(dfglove)
+    dfbert =  add_average_2_participants(dfbert)
 
     # make bold above baseline
-    baseline_GloVe = 0.002532702616162057
-    baseline_BERT = -0.0035220872142616455
+    baseline_GloVe = round(0.002532702616162057,6)
+    baseline_BERT = round(-0.0035220872142616455,6)
+    baseline_GloVe_std =round( 0.059781804096505346,6)
+    baseline_BERT_std = round(0.03702856899118565,6)
     dfglove['cosine_similarity'] = dfglove['cosine_similarity'].apply(
         make_bold,
         args=(baseline_GloVe,))
@@ -54,6 +78,11 @@ def analyze_two_participants():
     # format tables and make latex
     dfglove = dfglove[['participant','cortex_regions','cosine_similarity', 'cosine_similarity_std']]
     dfbert = dfbert[['participant','cortex_regions','cosine_similarity', 'cosine_similarity_std']]
+
+
+    # add baseline row to tables
+    dfglove.loc[len(dfglove.index)] = ['Baseline','',baseline_GloVe,baseline_GloVe_std]
+    dfbert.loc[len(dfbert.index)] = ['Baseline','', baseline_BERT,baseline_BERT_std]
 
     # rename columns
     dfbert = dfbert.rename(columns = {

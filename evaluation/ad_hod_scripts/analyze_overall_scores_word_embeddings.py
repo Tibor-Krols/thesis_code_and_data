@@ -21,7 +21,7 @@ def analyze_two_participants():
 
 
 
-def analyze_combined_regions():
+def analyze_combined_regions(print_results = True,makebold = True):
     df = pd.read_csv(r'F:\dataset\predictions\overall\overview_predictions.csv')
 
     # round decimals
@@ -49,7 +49,7 @@ def analyze_combined_regions():
     # Create a new row with the participant value as "average" and means as scores
     average_row_bert = pd.DataFrame({'participant': ['Average'], **means_bert}).round(6)
     dfbert = pd.concat([dfbert, average_row_bert])
-    means_glove = dfbert[['cosine_similarity', 'cosine_similarity_std']].mean()
+    means_glove = dfglove[['cosine_similarity', 'cosine_similarity_std']].mean()
     # Create a new row with the participant value as "average" and means as scores
     average_row_glove = pd.DataFrame({'participant': ['Average'], **means_glove}).round(6)
     dfglove = pd.concat([dfglove, average_row_glove])
@@ -66,12 +66,13 @@ def analyze_combined_regions():
     # dfbert = dfbert[dfbert.cosine_similarity >= baseline_BERT]
     # dfglove = dfglove[dfglove.cosine_similarity >= baseline_GloVe]
     #make bold if above baseline
-    dfglove['cosine_similarity'] = dfglove['cosine_similarity'].apply(
-        make_bold,
-        args=(baseline_GloVe,))
-    dfbert['cosine_similarity'] = dfbert['cosine_similarity'].apply(
-        make_bold,
-        args=(baseline_BERT,))
+    if makebold:
+        dfglove['cosine_similarity'] = dfglove['cosine_similarity'].apply(
+            make_bold,
+            args=(baseline_GloVe,))
+        dfbert['cosine_similarity'] = dfbert['cosine_similarity'].apply(
+            make_bold,
+            args=(baseline_BERT,))
 
 
     # format tables and make latex
@@ -105,9 +106,11 @@ def analyze_combined_regions():
 \cmidrule(lr){2-3} \cmidrule(lr){4-5}'''
     latex_string = latex_string.replace('\\toprule', '\\toprule' + insert, 1)
 
-    print(latex_string)
-    # print(dfnew.to_latex(index=False))
-    print('done')
+    if print_results:
+        print(latex_string)
+        # print(dfnew.to_latex(index=False))
+        print('done')
+    return dfnew
 
 
 def get_unique_regions(df):
