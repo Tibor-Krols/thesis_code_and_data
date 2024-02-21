@@ -74,7 +74,7 @@ def make_table(df):
     print(latex_string)
     return df
 
-def main():
+def add_cosine_to_bayesian_df():
     participants = ['sub-EN057', 'sub-EN058']
     section = 8
     embed_types = ['GloVe', 'BERT']
@@ -100,6 +100,10 @@ def main():
             cos_sim_std.append(cosine_similarities.std())
         dfres[f'cos_sim_{embed_type}'] = cos_sim
         dfres[f'cos_sim_std_{embed_type}'] = cos_sim_std
+    return dfres
+def main():
+
+    dfres = add_cosine_to_bayesian_df()
     make_table(dfres)
     print('done')
 

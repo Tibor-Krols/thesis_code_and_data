@@ -36,6 +36,7 @@ def assign_seen_unseen(
 
 ):
     # assign seen and unseen
+    df['all'] = True
     df['unseen_participant'] = [(p not in train_participants) and (s in train_sections) for p,s in zip(df.participant,df.section)]
     df['unseen_section'] = [(p in train_participants) and (s not in train_sections) for p,s in zip(df.participant,df.section)]
     df['fully_unseen'] = [(p not in train_participants) and (s not in train_sections) for p,s in zip(df.participant,df.section)]
@@ -49,7 +50,7 @@ def ttest_between_participants():
 
 
     dfstat = pd.DataFrame()
-    partitions = ['unseen_participant','unseen_section','fully_unseen','fully_seen']
+    partitions = ['all','unseen_participant','unseen_section','fully_unseen','fully_seen']
     for embed_type in embed_types:
         p_embed = []
         t_embed = []
@@ -61,6 +62,10 @@ def ttest_between_participants():
             df = pd.read_pickle(filepath/filename)
             df = assign_seen_unseen(df)
             df = df[df[partition]]
+            # mean_pred= df[f'cosine_pred_{embed_type}'].mean()
+            print(f"{embed_type} {partition} (M={round(df[f'cosine_pred_{embed_type}'].mean(),2)}, SD={round(df[f'cosine_pred_{embed_type}'].std(),2)})")
+            print(f"Baseline (M={round(df[f'cosine_baseline_{embed_type}'].mean(),2)}, SD={round(df[f'cosine_baseline_{embed_type}'].std(),2)})")
+            print('\n')
             # Perform t-test
             t_statistic, p_value = stats.ttest_ind(
                 df[f'cosine_pred_{embed_type}'],

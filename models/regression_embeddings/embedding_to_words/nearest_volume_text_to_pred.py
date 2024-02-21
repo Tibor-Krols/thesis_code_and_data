@@ -29,7 +29,9 @@ def load_embeddings_section(dataset,embed_type,participant,section):
 
 def get_best_and_worst_predictions(df,embed_type):
     df = df.sort_values(by=f'cosine_pred_{embed_type}',ascending=False)
-    df['gt_text'] = df[f'volume_words'].apply(lambda x: ' '.join(x))
+    if 'gt_text' not in df.columns:
+        df['gt_text'] = df[f'volume_words'].apply(lambda x: ' '.join(x))
+
     df[f'pred_text_{embed_type}'] = df[f'pred_words'].apply(lambda x: ' '.join(x))
     df = df[['gt_text',f'pred_text_{embed_type}',f'cosine_pred_{embed_type}']]
     df = df.rename(columns={f'cosine_pred_{embed_type}':'cos sim'})
