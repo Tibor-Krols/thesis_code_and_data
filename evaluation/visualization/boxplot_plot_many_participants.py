@@ -1,6 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.lines import Line2D
+
 from evaluation.ad_hod_scripts.analyze_overall_scores_word_embeddings import analyze_combined_regions
 from evaluation.significance_testing.regression_embeddings.ttest_avg_many_participants import load_df_embed
 from utils.paths import eval_path
@@ -65,21 +67,25 @@ def make_boxplot(df):
     # Set up subplots
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
     # Plot boxplot for BERT
-    sns.boxplot( data=df['BERT'], ax=axes[0],color='orange',showmeans=True)
+    sns.boxplot( data=df['BERT'], ax=axes[0],color='orange',showmeans=True, meanprops={"marker":"x", "markerfacecolor":"red", "markeredgecolor":"red"})
     axes[0].axhline(y=baseline_bert, color='r', linestyle='--',linewidth =2, label='Baseline')
     axes[0].set_title('BERT',fontsize = 'xx-large')
     # axes[0].set_xlabel('Cosine Similarity')
     axes[0].set_ylabel('Cosine Similarity with Ground Truth',fontsize = 'xx-large')
-    axes[0].legend(fontsize = 'x-large')
     axes[0].set_xticks([])  # Remove ticks from x-axis
 
     # Plot boxplot for GloVe
-    sns.boxplot(data=df['GloVe'], ax=axes[1],showmeans=True)
+    sns.boxplot(data=df['GloVe'], ax=axes[1],showmeans=True, meanprops={"marker":"x", "markerfacecolor":"red", "markeredgecolor":"red"})
     axes[1].axhline(y=baseline_glove, color='r', linestyle='--',linewidth = 2, label='Baseline')
     axes[1].set_title('GloVe',fontsize = 'xx-large')
     # axes[1].set_xlabel('Cosine Similarity')
     axes[1].set_ylabel('Cosine Similarity with Ground Truth',fontsize = 'xx-large')
-    axes[1].legend(fontsize = 'x-large')
+    # Custom legend
+    handles = [Line2D([0], [0], marker='x', color='red', markerfacecolor='red', markersize=10, linestyle='None'),
+               Line2D([0], [0], color='red', linestyle='--', linewidth=2)]
+    labels = ['Mean', 'Baseline']
+    axes[0].legend(handles, labels, fontsize='x-large')
+    axes[1].legend(handles, labels, fontsize='x-large')
     axes[1].set_xticks([])  # Remove ticks from x-axis
 
     # Set same y axis scale for both plots

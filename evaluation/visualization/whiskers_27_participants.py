@@ -21,10 +21,11 @@ def plot_errorbar(df,embed_type):
     plt.errorbar(df['cosine_similarity'], df['participant'], xerr=df['cosine_similarity_std'], fmt='o', capsize=5, label='Mean ± Std')
     plt.scatter(df['cosine_similarity'], df['participant'], color='red')  # Plot mean as dots
     plt.axvline(x=baseline, color='red', linestyle='--', label='Baseline')
+    plt.xticks(fontsize = 'x-large')
 
     # vertical
     # Plot mean as dots
-    # plt.figure(figsize=(8, 10))
+    # plt.figure(figsize=(9,8))
     # plt.errorbar(df['participant'], df['cosine_similarity'], yerr=df['cosine_similarity_std'], fmt='o', capsize=5, label='Mean ± Std')
     # plt.scatter(df['participant'], df['cosine_similarity'], color='red')
     # plt.axhline(y=baseline, color='red', linestyle='--', label='Baseline')
